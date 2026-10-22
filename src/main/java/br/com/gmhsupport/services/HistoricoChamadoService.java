@@ -6,9 +6,8 @@ import br.com.gmhsupport.exception.CustomNotFoundException;
 import br.com.gmhsupport.model.Chamado;
 import br.com.gmhsupport.model.HistoricoChamado;
 import br.com.gmhsupport.model.Tecnico;
-import br.com.gmhsupport.repository.ChamadoRepository;
-import br.com.gmhsupport.repository.HistoricoChamadoRepository;
-import br.com.gmhsupport.repository.TecnicoRepository;
+import br.com.gmhsupport.repository.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -25,6 +24,7 @@ public class HistoricoChamadoService {
     private final TecnicoRepository tecnicoRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(HistoricoChamadoService.class);
+
 
     public HistoricoChamadoService(HistoricoChamadoRepository historicoRepository,
                                    ChamadoRepository chamadoRepository,

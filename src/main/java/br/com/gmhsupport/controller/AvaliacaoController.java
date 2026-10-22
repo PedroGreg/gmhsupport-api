@@ -19,6 +19,8 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Avaliacoes")
@@ -33,18 +35,33 @@ public class AvaliacaoController {
         this.service = service;
     }
 
-    @Operation(description = "Criar um novo avaliacao")
-    @ApiResponse(responseCode = "201", description = "Avaliacao criado, retornará o próprio avaliacao criado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @PostMapping("")
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')")
+    @Operation(description = "Criar avaliação para um chamado finalizado")
+    @ApiResponse(responseCode = "201", description = "Avaliação registrada com sucesso")
+    @PostMapping
     public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> create(
-            @RequestBody @Valid AvaliacaoRequestDTO dto
-    ){
-        AvaliacaoResponseDTO createAvaliacao = service.create(dto);
-        EntityModel<AvaliacaoResponseDTO> entityModel = EntityModel.of(createAvaliacao);
+            @RequestBody @Valid AvaliacaoRequestDTO dto,
+            Authentication authentication
+    ) {
+        AvaliacaoResponseDTO responseDTO = service.create(authentication.getName(), dto);
+        EntityModel<AvaliacaoResponseDTO> entityModel = EntityModel.of(responseDTO);
         return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
+    @Operation(description = "Buscar avaliação por ID do chamado")
+    @ApiResponse(responseCode = "200", description = "Avaliação encontrada")
+    @ApiResponse(responseCode = "404", description = "Chamado não possui avaliação")
+    @GetMapping("/chamado/{chamadoId}")
+    public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> buscarPorChamadoId(
+            @PathVariable Long chamadoId
+    ) {
+        AvaliacaoResponseDTO responseDTO = service.buscarPorChamadoId(chamadoId);
+        EntityModel<AvaliacaoResponseDTO> entityModel = EntityModel.of(responseDTO);
+        return ResponseEntity.ok(entityModel);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos avaliacoes")
     @ApiResponse(responseCode = "200", description = "Lista com todos os avaliacoes cadastrados, caso nenhum, retornará apenas o pageable")
     @GetMapping()
@@ -57,6 +74,7 @@ public class AvaliacaoController {
         return new ResponseEntity<>(pagedAvaliacao, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar avaliacao por id")
     @ApiResponse(responseCode = "200", description = "Avaliacao encontrado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -70,6 +88,7 @@ public class AvaliacaoController {
         return new ResponseEntity<>(entityAvaliacao, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar avaliacao")
     @ApiResponse(responseCode = "200", description = "Avaliacao com o id informado atualizado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -83,6 +102,7 @@ public class AvaliacaoController {
         return new ResponseEntity<>(entityAvaliacao, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar avaliacao")
     @ApiResponse(responseCode = "204", description = "Avaliacao com o id informado deletado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)

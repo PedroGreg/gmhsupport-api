@@ -2,8 +2,10 @@ package br.com.gmhsupport.controller;
 
 import br.com.gmhsupport.dto.request.ChamadoCreateRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoFinalizarRequestDTO;
+import br.com.gmhsupport.dto.request.ChamadoMensagemRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoRequestDTO;
 import br.com.gmhsupport.dto.response.ChamadoResponseDTO;
+import br.com.gmhsupport.dto.response.HistoricoChamadoResponseDTO;
 import br.com.gmhsupport.services.ChamadoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,6 +38,7 @@ public class ChamadoController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Criar um novo chamado para o usuario autenticado")
     @ApiResponse(responseCode = "201", description = "Chamado criado com sucesso")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -52,17 +55,19 @@ public class ChamadoController {
         return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar chamado por id")
     @ApiResponse(responseCode = "200", description = "Chamado encontrado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
     @ApiResponse(responseCode = "404", description = "Chamado com o id informado não encontrado", content = @Content)
     @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<ChamadoResponseDTO>> findById(@PathVariable Long id) {
-        ChamadoResponseDTO findChamado = service.findById(id);
+    public ResponseEntity<EntityModel<ChamadoResponseDTO>> findById(@PathVariable Long id, Authentication authentication) {
+        ChamadoResponseDTO findChamado = service.findByIdComAcesso(id, authentication.getName());
         EntityModel<ChamadoResponseDTO> entityChamado = EntityModel.of(findChamado);
         return new ResponseEntity<>(entityChamado, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos chamados")
     @ApiResponse(responseCode = "200", description = "Lista com todos os chamados cadastrados, caso nenhum, retornará apenas o pageable")
     @GetMapping()
@@ -80,6 +85,7 @@ public class ChamadoController {
         return new ResponseEntity<>(pagedChamado, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar chamado com o id informado")
     @ApiResponse(responseCode = "200", description = "Chamado com o id informado atualizado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -94,6 +100,7 @@ public class ChamadoController {
         return new ResponseEntity<>(entityChamado, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar chamado")
     @ApiResponse(responseCode = "204", description = "Chamado com o id informado deletado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -102,6 +109,46 @@ public class ChamadoController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_ADMIN')")
+    @Operation(description = "Cancelar chamado")
+    @ApiResponse(responseCode = "200", description = "Chamado finalizado com sucesso")
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<EntityModel<ChamadoResponseDTO>> cancelarChamado(
+            @PathVariable Long id,
+            Authentication authentication
+    ){
+        ChamadoResponseDTO chamadoCancelado = service.cancelarChamado(authentication.getName(), id);
+        EntityModel<ChamadoResponseDTO> entityModel = EntityModel.of(chamadoCancelado);
+        return new ResponseEntity<>(entityModel, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO')")
+    @Operation(description = "Adicionar mensagem/evolução ao histórico do chamado")
+    @ApiResponse(responseCode = "201", description = "Mensagem registrada com sucesso")
+    @PostMapping("/{id}/mensagem")
+    public ResponseEntity<EntityModel<HistoricoChamadoResponseDTO>> adicionarMensagem(
+            @PathVariable Long id,
+            @RequestBody @Valid ChamadoMensagemRequestDTO dto,
+            Authentication authentication
+    ){
+        HistoricoChamadoResponseDTO historicoDTO = service.adicionarMensagem(id, authentication.getName(), dto);
+        EntityModel<HistoricoChamadoResponseDTO> entityModel = EntityModel.of(historicoDTO);
+        return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
+    @Operation(description = "Atualizar status para aguardando usuario")
+    @ApiResponse(responseCode = "200", description = "Status atualizado")
+    @PostMapping("/{id}/aguardar")
+    public ResponseEntity<EntityModel<ChamadoResponseDTO>> aguardandoUsuario(
+            @PathVariable Long id,
+            Authentication authentication
+    ){
+        ChamadoResponseDTO chamadoAtualizado = service.aguardandoUsuario(id, authentication.getName());
+        EntityModel<ChamadoResponseDTO> entityModel = EntityModel.of(chamadoAtualizado);
+        return new ResponseEntity<>(entityModel, HttpStatus.OK);
     }
     // ======== //
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
@@ -213,4 +260,6 @@ public class ChamadoController {
         EntityModel<ChamadoResponseDTO> entityChamado = EntityModel.of(finalizadoChamado);
         return new ResponseEntity<>(entityChamado, HttpStatus.OK);
     }
+
+
 }

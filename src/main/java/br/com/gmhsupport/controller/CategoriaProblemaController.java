@@ -17,6 +17,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Categoria Problema")
@@ -31,6 +32,7 @@ public class CategoriaProblemaController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo categoriaProblema")
     @ApiResponse(responseCode = "201", description = "CategoriaProblema criado, retornará o próprio categoriaProblema criado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -43,6 +45,7 @@ public class CategoriaProblemaController {
         return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos categoriaProblema")
     @ApiResponse(responseCode = "200", description = "Lista com todos os categoriaProblema cadastrados, caso nenhum, retornará apenas o pageable")
     @GetMapping()
@@ -55,6 +58,7 @@ public class CategoriaProblemaController {
         return new ResponseEntity<>(pagedCategoriaProblema, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar categoriaProblema por id")
     @ApiResponse(responseCode = "200", description = "CategoriaProblema encontrado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -68,6 +72,7 @@ public class CategoriaProblemaController {
         return new ResponseEntity<>(entityCategoriaProblema, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar categoriaProblema")
     @ApiResponse(responseCode = "200", description = "CategoriaProblema com o id informado atualizado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -81,6 +86,7 @@ public class CategoriaProblemaController {
         return new ResponseEntity<>(entityCategoriaProblema, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar categoriaProblema")
     @ApiResponse(responseCode = "204", description = "CategoriaProblema com o id informado deletado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)

@@ -17,6 +17,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "StatusChamados")
@@ -31,6 +32,7 @@ public class StatusChamadoController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo status de chamado")
     @ApiResponse(responseCode = "201", description = "Status de chamado criado com sucesso")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -43,6 +45,7 @@ public class StatusChamadoController {
         return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos os status de chamado")
     @ApiResponse(responseCode = "200", description = "Lista com todos os status cadastrados, caso nenhum, retornará apenas o pageable")
     @GetMapping()
@@ -62,6 +65,7 @@ public class StatusChamadoController {
         return new ResponseEntity<>(pagedStatus, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar status de chamado por id")
     @ApiResponse(responseCode = "200", description = "Status de chamado encontrado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -75,6 +79,7 @@ public class StatusChamadoController {
         return new ResponseEntity<>(entityStatus, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar status de chamado")
     @ApiResponse(responseCode = "200", description = "Status de chamado com o id informado atualizado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
@@ -89,6 +94,7 @@ public class StatusChamadoController {
         return new ResponseEntity<>(entityStatus, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar status de chamado")
     @ApiResponse(responseCode = "204", description = "Status de chamado com o id informado deletado")
     @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)

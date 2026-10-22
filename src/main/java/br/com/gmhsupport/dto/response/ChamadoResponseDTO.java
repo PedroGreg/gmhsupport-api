@@ -9,6 +9,8 @@ public record ChamadoResponseDTO(
         Long id,
         Long usuarioId,
         String usuarioNome,
+        String usuarioTelefone,
+        String usuarioEndereco,
         Long tecnicoId,
         String tecnicoNome,
         Long categoriaId,
@@ -30,6 +32,8 @@ public record ChamadoResponseDTO(
                 // 2. Mapeamento Usuário (sempre presente)
                 chamado.getUsuario() != null ? chamado.getUsuario().getId() : null,
                 chamado.getUsuario() != null ? chamado.getUsuario().getNome() : null,
+                chamado.getUsuario() != null ? chamado.getUsuario().getTelefone() : null,
+                chamado.getUsuario() != null ? chamado.getUsuario().getEndereco() : null,
 
                 // 3. Mapeamento Técnico (pode ser null)
                 chamado.getTecnico() != null ? chamado.getTecnico().getId() : null,

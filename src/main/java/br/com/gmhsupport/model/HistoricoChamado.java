@@ -18,6 +18,10 @@ public class HistoricoChamado {
     private Chamado chamado;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario")
+    private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tecnico")
     private Tecnico tecnico;
 
@@ -30,8 +34,9 @@ public class HistoricoChamado {
     public HistoricoChamado() {
     }
 
-    public HistoricoChamado(Chamado chamado, Tecnico tecnico, String descricao, LocalDateTime dataRegistro) {
+    public HistoricoChamado(Chamado chamado, Usuario usuario, Tecnico tecnico, String descricao, LocalDateTime dataRegistro) {
         this.chamado = chamado;
+        this.usuario = usuario;
         this.tecnico = tecnico;
         this.descricao = descricao;
         this.dataRegistro = dataRegistro;
@@ -43,6 +48,14 @@ public class HistoricoChamado {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public Chamado getChamado() {
@@ -81,11 +94,11 @@ public class HistoricoChamado {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         HistoricoChamado that = (HistoricoChamado) o;
-        return Objects.equals(id, that.id) && Objects.equals(chamado, that.chamado) && Objects.equals(tecnico, that.tecnico) && Objects.equals(descricao, that.descricao) && Objects.equals(dataRegistro, that.dataRegistro);
+        return Objects.equals(id, that.id) && Objects.equals(chamado, that.chamado) && Objects.equals(usuario, that.usuario) && Objects.equals(tecnico, that.tecnico) && Objects.equals(descricao, that.descricao) && Objects.equals(dataRegistro, that.dataRegistro);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, chamado, tecnico, descricao, dataRegistro);
+        return Objects.hash(id, chamado, usuario, tecnico, descricao, dataRegistro);
     }
 }

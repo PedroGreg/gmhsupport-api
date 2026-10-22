@@ -5,15 +5,20 @@ import br.com.gmhsupport.dto.response.AvaliacaoResponseDTO;
 import br.com.gmhsupport.exception.CustomNotFoundException;
 import br.com.gmhsupport.model.Avaliacao;
 import br.com.gmhsupport.model.Chamado;
+import br.com.gmhsupport.model.Usuario;
 import br.com.gmhsupport.repository.AvaliacaoRepository;
 import br.com.gmhsupport.repository.ChamadoRepository;
+import br.com.gmhsupport.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class AvaliacaoService {
@@ -22,19 +27,43 @@ public class AvaliacaoService {
     private final ChamadoRepository chamadoRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(AvaliacaoService.class);
+    private final UsuarioRepository usuarioRepository;
 
-    public AvaliacaoService(AvaliacaoRepository avaliacaoRepository, ChamadoRepository chamadoRepository) {
+    public AvaliacaoService(AvaliacaoRepository avaliacaoRepository, ChamadoRepository chamadoRepository, UsuarioRepository usuarioRepository) {
         this.avaliacaoRepository = avaliacaoRepository;
         this.chamadoRepository = chamadoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    public AvaliacaoResponseDTO create(AvaliacaoRequestDTO dto) {
+    @Transactional
+    public AvaliacaoResponseDTO create(String email, AvaliacaoRequestDTO dto) {
         logger.info("Criando avaliação para o chamado ID: {}", dto.chamadoId());
 
-        // 1. Otimização com Proxy para associar o Chamado sem SELECT desnecessário
-        Chamado chamado = chamadoRepository.getReferenceById(dto.chamadoId());
+        // 1. Busca o Usuário logado
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new AccessDeniedException("Não foi encontrado usuário cadastrado para o e-mail: " + email));
 
-        // 2. Instancia e mapeia a nova Avaliação
+        // 2. Busca o Chamado
+        Chamado chamado = chamadoRepository.findById(dto.chamadoId())
+                .orElseThrow(() -> new CustomNotFoundException(dto.chamadoId()));
+
+        // Regra 1: O chamado deve pertencer ao usuário logado
+        if (chamado.getUsuario() == null || !chamado.getUsuario().getId().equals(usuario.getId())) {
+            throw new AccessDeniedException("Somente o usuário dono do chamado pode gerar a avaliação.");
+        }
+
+        // Regra 2: O status do chamado deve ser 4L (Resolvido / Finalizado)
+        if (chamado.getStatus() == null || !chamado.getStatus().getId().equals(4L)) {
+            throw new IllegalStateException("Apenas chamados finalizados podem ser avaliados.");
+        }
+
+        // Regra 3: Ainda não deve ter sido avaliado
+        boolean jaAvaliado = avaliacaoRepository.existsByChamadoId(dto.chamadoId());
+        if (jaAvaliado) {
+            throw new IllegalStateException("Este chamado já possui uma avaliação registrada.");
+        }
+
+        // Instancia e salva a nova Avaliação
         Avaliacao avaliacao = new Avaliacao();
         avaliacao.setChamado(chamado);
         avaliacao.setNota(dto.nota());
@@ -45,6 +74,16 @@ public class AvaliacaoService {
         logger.info("Avaliação criada com sucesso. ID: {}", avaliacaoSalva.getId());
 
         return new AvaliacaoResponseDTO(avaliacaoSalva);
+    }
+
+    @Transactional(readOnly = true)
+    public AvaliacaoResponseDTO buscarPorChamadoId(Long chamadoId) {
+        logger.info("Buscando avaliação para o chamado ID: {}", chamadoId);
+
+        Avaliacao avaliacao = avaliacaoRepository.findByChamadoId(chamadoId)
+                .orElseThrow(() -> new CustomNotFoundException("Avaliação não encontrada para o chamado ID: " + chamadoId));
+
+        return new AvaliacaoResponseDTO(avaliacao);
     }
 
     public AvaliacaoResponseDTO findById(Long id) {

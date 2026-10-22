@@ -1,6 +1,8 @@
 package br.com.gmhsupport.services;
 
+import br.com.gmhsupport.dto.request.UsuarioAlterarSenhaRequestDTO;
 import br.com.gmhsupport.dto.request.UsuarioRequestDTO;
+import br.com.gmhsupport.dto.request.UsuarioUpdateMeRequestDTO;
 import br.com.gmhsupport.dto.response.UsuarioResponseDTO;
 import br.com.gmhsupport.exception.CustomNotFoundException;
 import br.com.gmhsupport.model.Usuario;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -85,6 +88,43 @@ public class UsuarioService {
         updateUser = repository.save(updateUser);
         logger.info("O id do usuario é: " + id);
         return new UsuarioResponseDTO(updateUser);
+    }
+
+    @Transactional
+    public UsuarioResponseDTO updateMe(String email, UsuarioUpdateMeRequestDTO dto) {
+        logger.info("Atualizando dados do perfil do usuário logado e-mail: {}", email);
+
+        Usuario usuario = repository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new CustomNotFoundException("Usuário não encontrado com o e-mail: " + email));
+
+        // Atualiza apenas os dados cadastrais (sem alterar a senha)
+        usuario.setNome(dto.nome());
+        usuario.setTelefone(dto.telefone());
+        usuario.setEndereco(dto.endereco());
+
+        Usuario usuarioSalvo = repository.save(usuario);
+        logger.info("Dados do perfil atualizados com sucesso para o usuário ID: {}", usuarioSalvo.getId());
+
+        return new UsuarioResponseDTO(usuarioSalvo);
+    }
+
+    @Transactional
+    public void alterarSenha(String email, UsuarioAlterarSenhaRequestDTO dto) {
+        logger.info("Alterando senha do usuário logado e-mail: {}", email);
+
+        Usuario usuario = repository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new CustomNotFoundException("Usuário não encontrado com o e-mail: " + email));
+
+        // 1. Confere se a senha atual enviada bate com a hash salva no banco
+        if (!passwordEncoder.matches(dto.senhaAtual(), usuario.getSenha())) {
+            throw new IllegalStateException("A senha atual informada está incorreta.");
+        }
+
+        // 2. Criptografa e atualiza para a nova senha
+        usuario.setSenha(passwordEncoder.encode(dto.novaSenha()));
+        repository.save(usuario);
+
+        logger.info("Senha alterada com sucesso para o usuário ID: {}", usuario.getId());
     }
 
     public void delete(Long id) {
