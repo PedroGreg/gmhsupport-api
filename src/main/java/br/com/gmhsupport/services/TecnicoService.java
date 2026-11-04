@@ -8,6 +8,7 @@ import br.com.gmhsupport.exception.CustomNotFoundException;
 import br.com.gmhsupport.model.Chamado;
 import br.com.gmhsupport.model.Tecnico;
 import br.com.gmhsupport.repository.ChamadoRepository;
+import br.com.gmhsupport.repository.PagamentoRepository;
 import br.com.gmhsupport.repository.TecnicoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,12 +28,14 @@ public class TecnicoService {
     private final TecnicoRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final ChamadoRepository chamadoRepository;
+    private final PagamentoRepository pagamentoRepository;
 
     Logger logger = LoggerFactory.getLogger(TecnicoService.class);
-    public TecnicoService(TecnicoRepository repository, PasswordEncoder passwordEncoder, ChamadoRepository chamadoRepository){
+    public TecnicoService(TecnicoRepository repository, PasswordEncoder passwordEncoder, ChamadoRepository chamadoRepository, PagamentoRepository pagamentoRepository){
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.chamadoRepository = chamadoRepository;
+        this.pagamentoRepository = pagamentoRepository;
     }
 
     public TecnicoResponseDTO create(TecnicoRequestDTO dto){
@@ -90,7 +94,11 @@ public class TecnicoService {
         logger.info("Estatísticas geradas: Total finalizados: {}, Nota Média: {}, Tempo Médio: {} min",
                 totalFinalizados, notaMedia, tempoMedioMinutos);
 
-        return new TecnicoEstatisticasResponseDTO(totalFinalizados, notaMedia, tempoMedioMinutos);
+        // 4. Soma dos pagamentos já confirmados dos chamados desse técnico
+        BigDecimal soma = pagamentoRepository.somarRecebidoPorTecnico(tecnico.getId());
+        BigDecimal valorRecebido = soma != null ? soma : BigDecimal.ZERO;
+
+        return new TecnicoEstatisticasResponseDTO(totalFinalizados, notaMedia, tempoMedioMinutos, valorRecebido);
     }
 
     public TecnicoResponseDTO findById(Long id) {

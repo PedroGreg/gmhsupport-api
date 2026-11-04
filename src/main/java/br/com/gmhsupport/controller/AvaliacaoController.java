@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.AvaliacaoRequestDTO;
 import br.com.gmhsupport.dto.response.AvaliacaoResponseDTO;
 import br.com.gmhsupport.model.Avaliacao;
@@ -37,7 +38,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Criar avaliação para um chamado finalizado")
-    @ApiResponse(responseCode = "201", description = "Avaliação registrada com sucesso")
+    @ApiResponseCreate
     @PostMapping
     public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> create(
             @RequestBody @Valid AvaliacaoRequestDTO dto,
@@ -50,8 +51,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar avaliação por ID do chamado")
-    @ApiResponse(responseCode = "200", description = "Avaliação encontrada")
-    @ApiResponse(responseCode = "404", description = "Chamado não possui avaliação")
+    @ApiResponseFindById
     @GetMapping("/chamado/{chamadoId}")
     public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> buscarPorChamadoId(
             @PathVariable Long chamadoId
@@ -63,7 +63,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos avaliacoes")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os avaliacoes cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<AvaliacaoResponseDTO>> findAll(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -76,9 +76,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar avaliacao por id")
-    @ApiResponse(responseCode = "200", description = "Avaliacao encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Avaliacao com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> findById(
             @PathVariable Long id
@@ -90,9 +88,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar avaliacao")
-    @ApiResponse(responseCode = "200", description = "Avaliacao com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Avaliacao com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<AvaliacaoResponseDTO>> update(
             @RequestBody @Valid AvaliacaoRequestDTO dto,
@@ -104,9 +100,7 @@ public class AvaliacaoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar avaliacao")
-    @ApiResponse(responseCode = "204", description = "Avaliacao com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Avaliacao com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(
             @PathVariable Long id

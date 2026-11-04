@@ -17,6 +17,9 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
 
     Page<Chamado> findByTecnicoIsNull(Pageable pageable);
 
+    // Fila de atendimento: sem técnico e ainda "Aberto" (não traz os cancelados)
+    Page<Chamado> findByTecnicoIsNullAndStatusId(Long statusId, Pageable pageable);
+
     Page<Chamado> findByTecnicoIsNotNull(Pageable pageable);
 
     Page<Chamado> findByTecnicoEmailIgnoreCase(String email, Pageable pageable);

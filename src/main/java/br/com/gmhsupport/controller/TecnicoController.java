@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.TecnicoRequestDTO;
 import br.com.gmhsupport.dto.response.TecnicoEstatisticasResponseDTO;
 import br.com.gmhsupport.dto.response.TecnicoResponseDTO;
@@ -36,8 +37,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo tecnico")
-    @ApiResponse(responseCode = "201", description = "Tecnico criado, retornará o próprio tecnico criado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<TecnicoResponseDTO>> create(@RequestBody @Valid TecnicoRequestDTO dto){
         TecnicoResponseDTO createTecnico = service.create(dto);
@@ -47,7 +47,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar perfil do tecnico logado")
-    @ApiResponse(responseCode = "200", description = "Tecnico encontrado")
+    @ApiResponse()
     @GetMapping("/me")
     public ResponseEntity<TecnicoResponseDTO> me(Authentication authentication) {
         return ResponseEntity.ok(service.findByEmailExato(authentication.getName()));
@@ -55,7 +55,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar estatísticas do perfil do técnico logado")
-    @ApiResponse(responseCode = "200", description = "Estatísticas geradas com sucesso")
+    @ApiResponse
     @GetMapping("/me/estatisticas")
     public ResponseEntity<TecnicoEstatisticasResponseDTO> obterEstatisticas(Authentication authentication) {
         TecnicoEstatisticasResponseDTO estatisticas = service.obterEstatisticas(authentication.getName());
@@ -65,7 +65,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos tecnicos")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os tecnicos cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<TecnicoResponseDTO>> findAll(@ParameterObject @PageableDefault() Pageable pageable){
         Page<TecnicoResponseDTO> pageTecnico = service.findAll(pageable);
@@ -76,9 +76,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar tecnico por id")
-    @ApiResponse(responseCode = "200", description = "Tecnico encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Tecnico com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<TecnicoResponseDTO>> findById(@PathVariable Long id){
         TecnicoResponseDTO findTecnico = service.findById(id);
@@ -88,11 +86,13 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar tecnicos por nome")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os tecnicos cadastrados com o nome informado, caso nenhum, retornará apenas o pageable")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Tecnico com o id informado não encontrado", content = @Content)
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todas as entidades salvas por nome, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/search")
-    public ResponseEntity<PagedModel<TecnicoResponseDTO>> findByName(@RequestParam @Valid @DefaultValue(value = "") String nome, @ParameterObject @PageableDefault Pageable pageable){
+    public ResponseEntity<PagedModel<TecnicoResponseDTO>> findByName(
+            @RequestParam @Valid @DefaultValue(value = "") String nome,
+            @ParameterObject @PageableDefault Pageable pageable
+    ){
         Page<TecnicoResponseDTO> pageTecnico = service.findByNome(nome, pageable);
         PagedModel<TecnicoResponseDTO> pagedModel = PagedModel.of(pageTecnico.stream().toList(),
                 new PagedModel.PageMetadata(pageTecnico.getSize(), pageTecnico.getNumber(), pageTecnico.getTotalElements(), pageTecnico.getTotalPages()));
@@ -101,9 +101,8 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar tecnicos por email")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os tecnicos cadastrados com o email informado, caso nenhum, retornará apenas o pageable")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Tecnico com o id informado não encontrado", content = @Content)
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todas as entidades salvas por nome, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/search-email")
     public ResponseEntity<PagedModel<TecnicoResponseDTO>> findByEmail(@RequestParam @Valid @DefaultValue(value = "") String email, @ParameterObject @PageableDefault Pageable pageable){
         Page<TecnicoResponseDTO> pageTecnico = service.findByEmail(email, pageable);
@@ -114,9 +113,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar tecnico")
-    @ApiResponse(responseCode = "200", description = "Tecnico com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Tecnico com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<TecnicoResponseDTO>> update(@RequestBody @Valid TecnicoRequestDTO dto, @PathVariable Long id){
         TecnicoResponseDTO updateTecnico = service.update(dto, id);
@@ -126,9 +123,7 @@ public class TecnicoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar tecnico")
-    @ApiResponse(responseCode = "204", description = "Tecnico com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Tecnico com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id){
         service.delete(id);

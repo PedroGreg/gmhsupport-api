@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.StatusChamadoRequestDTO;
 import br.com.gmhsupport.dto.response.StatusChamadoResponseDTO;
 import br.com.gmhsupport.services.StatusChamadoService;
@@ -34,8 +35,7 @@ public class StatusChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo status de chamado")
-    @ApiResponse(responseCode = "201", description = "Status de chamado criado com sucesso")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<StatusChamadoResponseDTO>> create(
             @RequestBody @Valid StatusChamadoRequestDTO dto
@@ -47,7 +47,7 @@ public class StatusChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos os status de chamado")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os status cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<StatusChamadoResponseDTO>> findAll(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -67,9 +67,7 @@ public class StatusChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar status de chamado por id")
-    @ApiResponse(responseCode = "200", description = "Status de chamado encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Status de chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<StatusChamadoResponseDTO>> findById(
             @PathVariable Long id
@@ -81,9 +79,7 @@ public class StatusChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar status de chamado")
-    @ApiResponse(responseCode = "200", description = "Status de chamado com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Status de chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<StatusChamadoResponseDTO>> update(
             @RequestBody @Valid StatusChamadoRequestDTO dto,
@@ -96,9 +92,7 @@ public class StatusChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar status de chamado")
-    @ApiResponse(responseCode = "204", description = "Status de chamado com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Status de chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.delete(id);

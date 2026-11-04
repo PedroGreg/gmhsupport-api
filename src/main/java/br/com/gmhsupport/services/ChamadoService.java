@@ -14,6 +14,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -29,12 +31,15 @@ public class ChamadoService {
     private static final Logger logger = LoggerFactory.getLogger(ChamadoService.class);
     private final HistoricoChamadoService historicoChamadoService;
     private final HistoricoChamadoRepository historicoChamadoRepository;
+    private final PagamentoService pagamentoService;
 
     public ChamadoService(ChamadoRepository chamadoRepository,
                           CategoriaProblemaRepository categoriaRepository,
                           StatusChamadoRepository statusRepository,
                           UsuarioRepository usuarioRepository,
-                          TecnicoRepository tecnicoRepository, HistoricoChamadoService historicoChamadoService, HistoricoChamadoRepository historicoChamadoRepository) {
+                          TecnicoRepository tecnicoRepository, HistoricoChamadoService historicoChamadoService, HistoricoChamadoRepository historicoChamadoRepository,
+                          PagamentoService pagamentoService) {
+        this.pagamentoService = pagamentoService;
         this.chamadoRepository = chamadoRepository;
         this.categoriaRepository = categoriaRepository;
         this.statusRepository = statusRepository;
@@ -191,7 +196,8 @@ public class ChamadoService {
 
     public Page<ChamadoResponseDTO> findChamadosAbertos(Pageable pageable){
         logger.info("Buscando chamados abertos");
-        Page<Chamado> findChamados = chamadoRepository.findByTecnicoIsNull(pageable);
+        // Só os chamados com status 1 (Aberto): cancelados não aparecem na fila
+        Page<Chamado> findChamados = chamadoRepository.findByTecnicoIsNullAndStatusId(1L, pageable);
         return findChamados.map(ChamadoResponseDTO::new);
     }
 
@@ -239,6 +245,7 @@ public class ChamadoService {
         return new ChamadoResponseDTO(chamadoAtualizado);
     }
 
+    @Transactional
     public ChamadoResponseDTO finalizarChamado(Long chamadoId, String email, ChamadoFinalizarRequestDTO dto){
         logger.info("Finalizando chamado id {} com o tecnico com email {}", chamadoId, email);
 
@@ -248,17 +255,30 @@ public class ChamadoService {
         Tecnico tecnico = tecnicoRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new CustomNotFoundException("Técnico não encontrado com o e-mail: " + email));
 
-        if (chamado.getTecnico() != null && !chamado.getTecnico().getId().equals(tecnico.getId())) {
-            throw new IllegalStateException("Apenas o técnico responsável pode finalizar este chamado.");
+        // O técnico precisa ter assumido o chamado antes (status 2 ou 3)
+        if (chamado.getTecnico() == null || !chamado.getTecnico().getId().equals(tecnico.getId())) {
+            throw new IllegalStateException("Apenas o técnico responsável pode finalizar este chamado. Assuma o chamado primeiro.");
+        }
+
+        Long statusAtual = chamado.getStatus() != null ? chamado.getStatus().getId() : null;
+        if (statusAtual == null || (statusAtual != 2L && statusAtual != 3L)) {
+            throw new IllegalStateException("Só é possível finalizar chamados em atendimento ou aguardando usuário.");
         }
 
         chamado.setDataFechamento(LocalDateTime.now());
-        chamado.setTecnico(tecnico);
         chamado.setStatus(statusRepository.getReferenceById(4L));
         Chamado chamadoAtualizado = chamadoRepository.save(chamado);
 
         HistoricoChamadoRequestDTO historico = new HistoricoChamadoRequestDTO(chamadoId, tecnico.getId(), dto.descricao());
         historicoChamadoService.create(historico);
+
+        // Valor informado: gera a cobrança para o cliente pagar pelo app
+        if (dto.valor() != null && dto.valor().compareTo(BigDecimal.ZERO) > 0) {
+            pagamentoService.criarCobranca(chamadoAtualizado, dto.valor());
+            historicoChamadoService.create(new HistoricoChamadoRequestDTO(
+                    chamadoId, tecnico.getId(),
+                    "Cobrança gerada: R$ " + dto.valor().setScale(2, RoundingMode.HALF_UP).toString().replace('.', ',')));
+        }
 
         logger.info("Chamado id {} designado para o tecnico id {}", chamadoAtualizado.getId(), tecnico.getId());
         return new ChamadoResponseDTO(chamadoAtualizado);
@@ -308,6 +328,10 @@ public class ChamadoService {
         Optional<Tecnico> tecnico = tecnicoRepository.findByEmailIgnoreCase(email);
         if(tecnico.isPresent()) {
             if (chamado.getTecnico() != null && chamado.getTecnico().getId().equals(tecnico.get().getId())) {
+                // Só faz sentido aguardar o usuário quando o chamado está em atendimento
+                if (chamado.getStatus() == null || !chamado.getStatus().getId().equals(2L)) {
+                    throw new IllegalStateException("Só é possível aguardar o usuário em chamados em atendimento.");
+                }
                 chamado.setStatus(statusRepository.getReferenceById(3L));
             }
             else {

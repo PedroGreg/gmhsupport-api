@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.CategoriaProblemaRequestDTO;
 import br.com.gmhsupport.dto.response.CategoriaProblemaResponseDTO;
 import br.com.gmhsupport.services.CategoriaProblemaService;
@@ -34,8 +35,7 @@ public class CategoriaProblemaController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo categoriaProblema")
-    @ApiResponse(responseCode = "201", description = "CategoriaProblema criado, retornará o próprio categoriaProblema criado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<CategoriaProblemaResponseDTO>> create(
             @RequestBody @Valid CategoriaProblemaRequestDTO dto
@@ -47,7 +47,7 @@ public class CategoriaProblemaController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos categoriaProblema")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os categoriaProblema cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<CategoriaProblemaResponseDTO>> findAll(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -60,9 +60,7 @@ public class CategoriaProblemaController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar categoriaProblema por id")
-    @ApiResponse(responseCode = "200", description = "CategoriaProblema encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "CategoriaProblema com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<CategoriaProblemaResponseDTO>> findById(
             @PathVariable Long id
@@ -74,9 +72,7 @@ public class CategoriaProblemaController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar categoriaProblema")
-    @ApiResponse(responseCode = "200", description = "CategoriaProblema com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "CategoriaProblema com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<CategoriaProblemaResponseDTO>> update(
             @RequestBody @Valid CategoriaProblemaRequestDTO dto,
@@ -88,9 +84,7 @@ public class CategoriaProblemaController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar categoriaProblema")
-    @ApiResponse(responseCode = "204", description = "CategoriaProblema com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "CategoriaProblema com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id){
         service.delete(id);

@@ -1,5 +1,9 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.ApiResponseCreate;
+import br.com.gmhsupport.config.ApiResponseFindAll;
+import br.com.gmhsupport.config.ApiResponseFindById;
+import br.com.gmhsupport.config.ApiResponseUpdate;
 import br.com.gmhsupport.dto.request.UsuarioAlterarSenhaRequestDTO;
 import br.com.gmhsupport.dto.request.UsuarioRequestDTO;
 import br.com.gmhsupport.dto.request.UsuarioUpdateMeRequestDTO;
@@ -35,8 +39,7 @@ public class UsuarioController {
     }
 
     @Operation(description = "Criar um novo usuario")
-    @ApiResponse(responseCode = "201", description = "Usuario criado, retornará o próprio usuario criado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<UsuarioResponseDTO>> create(@RequestBody @Valid UsuarioRequestDTO dto) {
         UsuarioResponseDTO createUser = service.create(dto);
@@ -46,13 +49,14 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @GetMapping("/me")
+    @ApiResponse()
     public ResponseEntity<UsuarioResponseDTO> me(Authentication authentication) {
         return ResponseEntity.ok(service.findByEmailExato(authentication.getName()));
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Atualizar dados do perfil do usuário logado (sem alterar senha)")
-    @ApiResponse(responseCode = "200", description = "Perfil atualizado com sucesso")
+    @ApiResponse()
     @PutMapping("/me")
     public ResponseEntity<EntityModel<UsuarioResponseDTO>> updateMe(
             @RequestBody @Valid UsuarioUpdateMeRequestDTO dto,
@@ -65,8 +69,7 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Alterar senha do usuário logado")
-    @ApiResponse(responseCode = "200", description = "Senha alterada com sucesso")
-    @ApiResponse(responseCode = "400", description = "Senha atual incorreta")
+    @ApiResponse()
     @PutMapping("/me/senha")
     public ResponseEntity<Void> alterarSenha(
             @RequestBody @Valid UsuarioAlterarSenhaRequestDTO dto,
@@ -78,7 +81,7 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos usuarios")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os usuarios cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<UsuarioResponseDTO>> findAll(@ParameterObject @PageableDefault() Pageable pageable) {
         Page<UsuarioResponseDTO> pageUser = service.findAll(pageable);
@@ -89,9 +92,7 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar usuario por id")
-    @ApiResponse(responseCode = "200", description = "Usuario encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Usuario com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioResponseDTO>> findById(@PathVariable Long id) {
         UsuarioResponseDTO findUser = service.findById(id);
@@ -101,9 +102,8 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar usuarios por nome")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os usuarios cadastrados com o nome informado, caso nenhum, retornará apenas o pageable")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Usuario com o id informado não encontrado", content = @Content)
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todas as entidades salvas por nome, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/search")
     public ResponseEntity<PagedModel<UsuarioResponseDTO>> findByName(@RequestParam @Valid @DefaultValue(value = "") String nome, @ParameterObject @PageableDefault Pageable pageable) {
         Page<UsuarioResponseDTO> pageUser = service.findByNome(nome, pageable);
@@ -114,9 +114,8 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar usuarios por email")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os usuarios cadastrados com o email informado, caso nenhum, retornará apenas o pageable")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Usuario com o id informado não encontrado", content = @Content)
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todas as entidades salvas por nome, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/search-email")
     public ResponseEntity<PagedModel<UsuarioResponseDTO>> findByEmail(@RequestParam @Valid @DefaultValue(value = "") String email, @ParameterObject @PageableDefault Pageable pageable) {
         Page<UsuarioResponseDTO> pageUser = service.findByEmail(email, pageable);
@@ -127,9 +126,7 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar usuario")
-    @ApiResponse(responseCode = "200", description = "Usuario com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Usuario com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<UsuarioResponseDTO>> update(@RequestBody @Valid UsuarioRequestDTO dto, @PathVariable Long id) {
         UsuarioResponseDTO updateUser = service.update(dto, id);
@@ -139,9 +136,7 @@ public class UsuarioController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar usuario")
-    @ApiResponse(responseCode = "204", description = "Usuario com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Usuario com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.delete(id);

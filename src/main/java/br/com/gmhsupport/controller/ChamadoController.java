@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.ChamadoCreateRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoFinalizarRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoMensagemRequestDTO;
@@ -40,9 +41,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Criar um novo chamado para o usuario autenticado")
-    @ApiResponse(responseCode = "201", description = "Chamado criado com sucesso")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "403", description = "Acesso negado / Token inválido", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> create(
             @RequestBody @Valid ChamadoCreateRequestDTO dto,
@@ -57,9 +56,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar chamado por id")
-    @ApiResponse(responseCode = "200", description = "Chamado encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> findById(@PathVariable Long id, Authentication authentication) {
         ChamadoResponseDTO findChamado = service.findByIdComAcesso(id, authentication.getName());
@@ -69,7 +66,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos chamados")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os chamados cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<ChamadoResponseDTO>> findAll(@ParameterObject @PageableDefault() Pageable pageable) {
         Page<ChamadoResponseDTO> pageChamado = service.findAll(pageable);
@@ -87,9 +84,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar chamado com o id informado")
-    @ApiResponse(responseCode = "200", description = "Chamado com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> update(
             @RequestBody @Valid ChamadoRequestDTO dto,
@@ -102,9 +97,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar chamado")
-    @ApiResponse(responseCode = "204", description = "Chamado com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.delete(id);
@@ -113,7 +106,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Cancelar chamado")
-    @ApiResponse(responseCode = "200", description = "Chamado finalizado com sucesso")
+    @ApiResponseFindById
     @PostMapping("/{id}/cancelar")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> cancelarChamado(
             @PathVariable Long id,
@@ -126,7 +119,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO')")
     @Operation(description = "Adicionar mensagem/evolução ao histórico do chamado")
-    @ApiResponse(responseCode = "201", description = "Mensagem registrada com sucesso")
+    @ApiResponseCreate
     @PostMapping("/{id}/mensagem")
     public ResponseEntity<EntityModel<HistoricoChamadoResponseDTO>> adicionarMensagem(
             @PathVariable Long id,
@@ -140,7 +133,7 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar status para aguardando usuario")
-    @ApiResponse(responseCode = "200", description = "Status atualizado")
+    @ApiResponseUpdate
     @PostMapping("/{id}/aguardar")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> aguardandoUsuario(
             @PathVariable Long id,
@@ -153,7 +146,8 @@ public class ChamadoController {
     // ======== //
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
     @Operation(description = "Buscar meus chamados")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os chamados cadastrados desse usuário")
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todos os seus chamados, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/meus")
     public ResponseEntity<PagedModel<ChamadoResponseDTO>> findMeusChamados(
             @ParameterObject @PageableDefault() Pageable pageable,
@@ -174,7 +168,8 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar chamados sem técnicos")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os chamados cadastrados sem técnico")
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todos os chamados sem tecnicos atribuidos, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/fila")
     public ResponseEntity<PagedModel<ChamadoResponseDTO>> findChamadosAbertos(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -194,7 +189,8 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos chamados atribuidos")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os chamados atribuidos desse técnico")
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todos os chamados com técnicos atribuidos, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/atribuidos/todos")
     public ResponseEntity<PagedModel<ChamadoResponseDTO>> findChamadosAtribuidos(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -214,7 +210,8 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar chamados atribuidos por técnico")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os chamados atribuidos desse técnico")
+    @ApiResponse(responseCode = "200", description = "Retornada uma lista com todos os chamados atribuidos para o técnico logado, se estiver vazia retornará apenas os dados do pageable")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @GetMapping("/atribuidos")
     public ResponseEntity<PagedModel<ChamadoResponseDTO>> findChamadosAtribuidos(
             @ParameterObject @PageableDefault() Pageable pageable,
@@ -235,8 +232,9 @@ public class ChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atribuir chamado ao técnico")
-    @ApiResponse(responseCode = "200", description = "Chamado atribuido ao técnico")
-    @ApiResponse(responseCode = "404", description = "Chamado ou Técnico não encontrado")
+    @ApiResponse(responseCode = "200", description = "Entidade atualizada com sucesso, retornará a própria entidade atualizada")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Não foi encontrado nenhuma entidade com esse ID para atualizar, verificar ID", content = @Content)
     @PostMapping("/atribuidos/{id}/assumir")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> assumirChamado(
             @PathVariable Long id,
@@ -248,8 +246,10 @@ public class ChamadoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
-    @Operation(description = "Finalizar chamado")
-    @ApiResponse(responseCode = "200", description = "Chamado finalizado com sucesso")
+    @Operation(description = "Finalizar chamado. Envie \"valor\" > 0 para gerar a cobrança do serviço (opcional)")
+    @ApiResponse(responseCode = "200", description = "Entidade atualizada com sucesso, retornará a própria entidade atualizada")
+    @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Não foi encontrado nenhuma entidade com esse ID para atualizar, verificar ID", content = @Content)
     @PostMapping("/atribuidos/{id}/finalizar")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> finalizarChamado(
             @PathVariable Long id,

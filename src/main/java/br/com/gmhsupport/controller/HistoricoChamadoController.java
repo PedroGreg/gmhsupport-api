@@ -1,5 +1,6 @@
 package br.com.gmhsupport.controller;
 
+import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.HistoricoChamadoRequestDTO;
 import br.com.gmhsupport.dto.response.HistoricoChamadoResponseDTO;
 import br.com.gmhsupport.services.ChamadoService;
@@ -38,8 +39,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo histórico de chamado")
-    @ApiResponse(responseCode = "201", description = "Histórico criado com sucesso")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
+    @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<HistoricoChamadoResponseDTO>> create(
             @RequestBody @Valid HistoricoChamadoRequestDTO dto
@@ -51,7 +51,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar todos os históricos de chamados")
-    @ApiResponse(responseCode = "200", description = "Lista com todos os históricos cadastrados, caso nenhum, retornará apenas o pageable")
+    @ApiResponseFindAll
     @GetMapping()
     public ResponseEntity<PagedModel<HistoricoChamadoResponseDTO>> findAll(
             @ParameterObject @PageableDefault() Pageable pageable
@@ -71,9 +71,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar histórico de chamado por id")
-    @ApiResponse(responseCode = "200", description = "Histórico de chamado encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Histórico com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<HistoricoChamadoResponseDTO>> findById(
             @PathVariable Long id
@@ -85,9 +83,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Buscar historico chamado pelo id do chamado")
-    @ApiResponse(responseCode = "200", description = "Histórico de chamado encontrado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Chamado com o id informado não encontrado", content = @Content)
+    @ApiResponseFindById
     @GetMapping("/chamado/{chamadoId}")
     public ResponseEntity<PagedModel<HistoricoChamadoResponseDTO>> findByChamado(
             @PathVariable Long chamadoId,
@@ -103,9 +99,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Atualizar histórico de chamado")
-    @ApiResponse(responseCode = "200", description = "Histórico de chamado com o id informado atualizado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Histórico com o id informado não encontrado", content = @Content)
+    @ApiResponseUpdate
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<HistoricoChamadoResponseDTO>> update(
             @RequestBody @Valid HistoricoChamadoRequestDTO dto,
@@ -118,9 +112,7 @@ public class HistoricoChamadoController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Deletar histórico de chamado")
-    @ApiResponse(responseCode = "204", description = "Histórico de chamado com o id informado deletado")
-    @ApiResponse(responseCode = "400", description = "Houve algum erro nos dados enviados na requisição", content = @Content)
-    @ApiResponse(responseCode = "404", description = "Histórico com o id informado não encontrado", content = @Content)
+    @ApiResponseDelete
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         service.delete(id);
