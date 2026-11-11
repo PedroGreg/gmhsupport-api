@@ -1,7 +1,11 @@
 package br.com.gmhsupport.dto.response;
 
 import br.com.gmhsupport.model.Chamado;
+import br.com.gmhsupport.model.FormaPagamento;
 import br.com.gmhsupport.model.Prioridade;
+import br.com.gmhsupport.model.StatusPagamento;
+
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +26,12 @@ public record ChamadoResponseDTO(
         Prioridade prioridade,
         LocalDateTime dataAbertura,
         LocalDateTime dataAtendimento,
-        LocalDateTime dataFechamento
+        LocalDateTime dataFechamento,
+
+        // Pagamento feito na abertura
+        BigDecimal valor,
+        StatusPagamento statusPagamento,
+        FormaPagamento formaPagamento
 ) {
     public ChamadoResponseDTO(Chamado chamado) {
         this(
@@ -53,7 +62,12 @@ public record ChamadoResponseDTO(
                 chamado.getPrioridade(),
                 chamado.getDataAbertura(),
                 chamado.getDataAtendimento(),
-                chamado.getDataFechamento()
+                chamado.getDataFechamento(),
+
+                // 7. Pagamento (pode não existir em chamados antigos)
+                chamado.getPagamento() != null ? chamado.getPagamento().getValor() : null,
+                chamado.getPagamento() != null ? chamado.getPagamento().getStatus() : null,
+                chamado.getPagamento() != null ? chamado.getPagamento().getForma() : null
         );
     }
 }

@@ -38,6 +38,9 @@ public class Pagamento {
     @Column(name = "codigo_pix")
     private String codigoPix;
 
+    @Column(length = 20)
+    private String bandeira;
+
     @Column(name = "data_criacao", insertable = false, updatable = false)
     private LocalDateTime dataCriacao;
 
@@ -76,6 +79,9 @@ public class Pagamento {
 
     public String getCodigoPix() { return codigoPix; }
     public void setCodigoPix(String codigoPix) { this.codigoPix = codigoPix; }
+
+    public String getBandeira() { return bandeira; }
+    public void setBandeira(String bandeira) { this.bandeira = bandeira; }
 
     public LocalDateTime getDataCriacao() { return dataCriacao; }
     public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }

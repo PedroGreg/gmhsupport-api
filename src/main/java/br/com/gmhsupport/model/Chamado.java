@@ -48,6 +48,18 @@ public class Chamado {
     @Column(name = "data_fechamento")
     private LocalDateTime dataFechamento;
 
+    // Lado "inverso" da relação: quem tem a coluna id_chamado é a tabela pagamentos
+    @OneToOne(mappedBy = "chamado", fetch = FetchType.LAZY)
+    private Pagamento pagamento;
+
+    public Pagamento getPagamento() {
+        return pagamento;
+    }
+
+    public void setPagamento(Pagamento pagamento) {
+        this.pagamento = pagamento;
+    }
+
     public Chamado() {
     }
 

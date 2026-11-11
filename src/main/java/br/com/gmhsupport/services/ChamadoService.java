@@ -14,8 +14,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -49,6 +47,7 @@ public class ChamadoService {
         this.historicoChamadoRepository = historicoChamadoRepository;
     }
 
+    @Transactional
     public ChamadoResponseDTO create(ChamadoCreateRequestDTO dto, String emailUsuarioLogado) {
         logger.info("Criando chamado para o usuario: {}", emailUsuarioLogado);
 
@@ -66,7 +65,7 @@ public class ChamadoService {
         Chamado chamado = new Chamado();
         chamado.setTitulo(dto.titulo());
         chamado.setDescricao(dto.descricao());
-        chamado.setPrioridade(dto.prioridade());
+        chamado.setPrioridade(dto.prioridade() != null ? dto.prioridade() : Prioridade.media);
         chamado.setUsuario(usuario);
         chamado.setCategoria(categoria);
         chamado.setStatus(statusInicial);
@@ -74,6 +73,18 @@ public class ChamadoService {
 
         Chamado chamadoSalvo = chamadoRepository.save(chamado);
         logger.info("O id do chamado criado é: {}", chamadoSalvo.getId());
+
+        // Pagamento na abertura. Se o cartão for inválido, a exceção desfaz também o chamado (@Transactional)
+        Pagamento pagamento = pagamentoService.criarNaAbertura(
+                chamadoSalvo, dto.formaPagamento(), dto.cartaoId(), dto.parcelas());
+        chamadoSalvo.setPagamento(pagamento);
+
+        String registro = pagamento.getStatus() == StatusPagamento.pago
+                ? "Pagamento aprovado: R$ " + PagamentoService.formatar(pagamento.getValor())
+                  + " no " + (pagamento.getForma() == FormaPagamento.credito ? "crédito" : "débito")
+                  + " final " + pagamento.getCartaoFinal()
+                : "Aguardando pagamento do Pix de R$ " + PagamentoService.formatar(pagamento.getValor());
+        historicoChamadoService.create(new HistoricoChamadoRequestDTO(chamadoSalvo.getId(), null, registro));
 
         return new ChamadoResponseDTO(chamadoSalvo);
     }
@@ -166,6 +177,7 @@ public class ChamadoService {
         return chamados.map(ChamadoResponseDTO::new);
     }
 
+    @Transactional
     public ChamadoResponseDTO cancelarChamado(String email, Long id){
         logger.info("Cancelando chamado com o id {}", id);
         Chamado chamado = chamadoRepository.findById(id)
@@ -185,6 +197,12 @@ public class ChamadoService {
         chamado.setStatus(statusRepository.getReferenceById(5L));
         chamado.setDataFechamento(LocalDateTime.now());
         Chamado chamadoCancelado = chamadoRepository.save(chamado);
+
+        // Devolve o dinheiro se já estava pago
+        String estorno = pagamentoService.estornarSeNecessario(chamadoCancelado);
+        historicoChamadoService.create(new HistoricoChamadoRequestDTO(id, null,
+                estorno != null ? "Chamado cancelado pelo cliente. " + estorno : "Chamado cancelado pelo cliente."));
+
         return new ChamadoResponseDTO(chamadoCancelado);
     }
 
@@ -196,8 +214,8 @@ public class ChamadoService {
 
     public Page<ChamadoResponseDTO> findChamadosAbertos(Pageable pageable){
         logger.info("Buscando chamados abertos");
-        // Só os chamados com status 1 (Aberto): cancelados não aparecem na fila
-        Page<Chamado> findChamados = chamadoRepository.findByTecnicoIsNullAndStatusId(1L, pageable);
+        // Só chamados Abertos e pagos: cancelados e Pix não confirmado não aparecem na fila
+        Page<Chamado> findChamados = chamadoRepository.findFila(pageable);
         return findChamados.map(ChamadoResponseDTO::new);
     }
 
@@ -227,6 +245,11 @@ public class ChamadoService {
 
         if (chamado.getTecnico() != null && !chamado.getTecnico().getId().equals(tecnico.getId())) {
             throw new IllegalStateException("Não é possível assumir um chamado que já está sendo atendido por outro técnico.");
+        }
+
+        // Pix ainda não confirmado: o chamado não pode ser atendido
+        if (chamado.getPagamento() != null && chamado.getPagamento().getStatus() != StatusPagamento.pago) {
+            throw new IllegalStateException("Este chamado está aguardando o pagamento do cliente.");
         }
 
         chamado.setDataAtendimento(LocalDateTime.now());
@@ -271,14 +294,6 @@ public class ChamadoService {
 
         HistoricoChamadoRequestDTO historico = new HistoricoChamadoRequestDTO(chamadoId, tecnico.getId(), dto.descricao());
         historicoChamadoService.create(historico);
-
-        // Valor informado: gera a cobrança para o cliente pagar pelo app
-        if (dto.valor() != null && dto.valor().compareTo(BigDecimal.ZERO) > 0) {
-            pagamentoService.criarCobranca(chamadoAtualizado, dto.valor());
-            historicoChamadoService.create(new HistoricoChamadoRequestDTO(
-                    chamadoId, tecnico.getId(),
-                    "Cobrança gerada: R$ " + dto.valor().setScale(2, RoundingMode.HALF_UP).toString().replace('.', ',')));
-        }
 
         logger.info("Chamado id {} designado para o tecnico id {}", chamadoAtualizado.getId(), tecnico.getId());
         return new ChamadoResponseDTO(chamadoAtualizado);

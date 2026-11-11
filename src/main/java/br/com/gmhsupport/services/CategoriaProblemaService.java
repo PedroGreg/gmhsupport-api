@@ -28,6 +28,7 @@ public class CategoriaProblemaService {
         CategoriaProblema categoriaProblema = new CategoriaProblema();
         categoriaProblema.setNome(dto.nome());
         categoriaProblema.setDescricao(dto.descricao());
+        if (dto.valorBase() != null) categoriaProblema.setValorBase(dto.valorBase());
 
         CategoriaProblema createCategoriaProblema = repository.save(categoriaProblema);
         logger.info("Categoria de problema criada com sucesso. ID: {}", createCategoriaProblema.getId());
@@ -60,6 +61,7 @@ public class CategoriaProblemaService {
 
         updateCategoriaProblema.setNome(dto.nome());
         updateCategoriaProblema.setDescricao(dto.descricao());
+        if (dto.valorBase() != null) updateCategoriaProblema.setValorBase(dto.valorBase());
 
         CategoriaProblema categoriaSalva = repository.save(updateCategoriaProblema);
         logger.info("Categoria de problema ID {} atualizada com sucesso", id);

@@ -15,6 +15,7 @@ public record PagamentoResponseDTO(
         FormaPagamento forma,
         Integer parcelas,
         String cartaoFinal,
+        String bandeira,
         String codigoPix,
         LocalDateTime dataCriacao,
         LocalDateTime dataPagamento
@@ -28,6 +29,7 @@ public record PagamentoResponseDTO(
                 pagamento.getForma(),
                 pagamento.getParcelas(),
                 pagamento.getCartaoFinal(),
+                pagamento.getBandeira(),
                 pagamento.getCodigoPix(),
                 pagamento.getDataCriacao(),
                 pagamento.getDataPagamento()

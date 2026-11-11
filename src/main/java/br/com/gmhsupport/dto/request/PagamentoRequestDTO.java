@@ -4,20 +4,18 @@ import br.com.gmhsupport.model.FormaPagamento;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 
-// Pagamento SIMULADO: nenhum dado de cartão é enviado para a API, só os 4 últimos dígitos
-// para mostrar no comprovante. Em produção, os dados do cartão iriam direto para um
-// gateway (Mercado Pago, Stripe, PagSeguro...) e a API receberia só a confirmação.
+// Usado para trocar a forma de um pagamento ainda pendente (ex.: gerou Pix e quer pagar no cartão).
+// Pagamento SIMULADO: o cartão é um dos cartões salvos do usuário (só os 4 últimos dígitos ficam na API).
 public record PagamentoRequestDTO(
         @NotNull(message = "A forma de pagamento é obrigatória (pix, credito ou debito)")
         FormaPagamento forma,
 
-        @Min(value = 1, message = "Mínimo de 1 parcela")
-        @Max(value = 12, message = "Máximo de 12 parcelas")
-        Integer parcelas,
+        // Obrigatório para credito/debito
+        Long cartaoId,
 
-        @Pattern(regexp = "\\d{4}", message = "Informe apenas os 4 últimos dígitos do cartão")
-        String cartaoFinal
+        @Min(value = 1, message = "Mínimo de 1 parcela")
+        @Max(value = 6, message = "Máximo de 6 parcelas")
+        Integer parcelas
 ) {
 }

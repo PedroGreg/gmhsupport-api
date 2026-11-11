@@ -28,7 +28,7 @@ public class PagamentoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
-    @Operation(description = "Buscar a cobrança de um chamado (dono do chamado ou técnico responsável)")
+    @Operation(description = "Buscar o pagamento de um chamado (dono do chamado ou técnico responsável)")
     @ApiResponse(responseCode = "200", description = "Cobrança encontrada")
     @ApiResponse(responseCode = "404", description = "O chamado não possui cobrança", content = @Content)
     @GetMapping("/chamado/{chamadoId}")
@@ -40,7 +40,7 @@ public class PagamentoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
-    @Operation(description = "Pagar a cobrança (simulado). Pix: gera o código e fica aguardando_pix. Crédito/Débito: aprova na hora")
+    @Operation(description = "Trocar a forma de um pagamento ainda não pago (simulado). Pix: gera novo código (aguardando_pix). Crédito/Débito: usa um cartão salvo (cartaoId) e aprova na hora")
     @ApiResponse(responseCode = "200", description = "Pagamento processado")
     @ApiResponse(responseCode = "404", description = "O chamado não possui cobrança", content = @Content)
     @ApiResponse(responseCode = "409", description = "Chamado já pago", content = @Content)

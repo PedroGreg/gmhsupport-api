@@ -40,7 +40,7 @@ public class ChamadoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
-    @Operation(description = "Criar um novo chamado para o usuario autenticado")
+    @Operation(description = "Criar um novo chamado já com o pagamento (formaPagamento: pix, credito ou debito; cartaoId obrigatório no cartão). Valor = valor base da categoria + acréscimo da prioridade (baixa 0%, media 20%, alta 50%, urgente 100%)")
     @ApiResponseCreate
     @PostMapping("")
     public ResponseEntity<EntityModel<ChamadoResponseDTO>> create(
@@ -246,7 +246,7 @@ public class ChamadoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
-    @Operation(description = "Finalizar chamado. Envie \"valor\" > 0 para gerar a cobrança do serviço (opcional)")
+    @Operation(description = "Finalizar chamado")
     @ApiResponse(responseCode = "200", description = "Entidade atualizada com sucesso, retornará a própria entidade atualizada")
     @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @ApiResponse(responseCode = "404", description = "Não foi encontrado nenhuma entidade com esse ID para atualizar, verificar ID", content = @Content)
