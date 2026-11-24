@@ -71,10 +71,10 @@ public class PagamentoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
-    @Operation(description = "Trocar a forma de um pagamento ainda não pago (simulado). Pix: gera novo código (aguardando_pix). Crédito/Débito: usa um cartão salvo (cartaoId) e aprova na hora")
-    @ApiResponse(responseCode = "200", description = "Pagamento processado")
+    @Operation(description = "Trocar a forma de um pagamento ainda não pago, ou gerar um Pix novo (o anterior expirou). forma: pix | cartao")
+    @ApiResponse(responseCode = "200", description = "Nova cobrança criada no Mercado Pago (codigoPix ou linkPagamento)")
     @ApiResponse(responseCode = "404", description = "O chamado não possui pagamento desse tipo", content = @Content)
-    @ApiResponse(responseCode = "409", description = "Já pago, estornado ou chamado encerrado", content = @Content)
+    @ApiResponse(responseCode = "409", description = "Já pago, estornado, chamado encerrado ou Mercado Pago indisponível", content = @Content)
     @PostMapping("/chamado/{chamadoId}/pagar")
     public ResponseEntity<EntityModel<PagamentoResponseDTO>> pagar(
             @PathVariable Long chamadoId,
@@ -86,15 +86,14 @@ public class PagamentoController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO')")
-    @Operation(description = "Confirmar o Pix (simula o aviso do banco de que o Pix foi recebido)")
-    @ApiResponse(responseCode = "200", description = "Pix confirmado, pagamento concluído")
-    @ApiResponse(responseCode = "409", description = "Pix não gerado ou já pago", content = @Content)
-    @PostMapping("/chamado/{chamadoId}/confirmar-pix")
-    public ResponseEntity<EntityModel<PagamentoResponseDTO>> confirmarPix(
+    @Operation(description = "\"Já paguei\": consulta o Mercado Pago e atualiza o pagamento (Pix ou cartão)")
+    @ApiResponse(responseCode = "200", description = "Situação atual do pagamento (status pago se aprovado)")
+    @PostMapping({"/chamado/{chamadoId}/verificar", "/chamado/{chamadoId}/confirmar-pix"})
+    public ResponseEntity<EntityModel<PagamentoResponseDTO>> verificar(
             @PathVariable Long chamadoId,
             @RequestParam(defaultValue = "principal") TipoPagamento tipo,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(EntityModel.of(service.confirmarPix(chamadoId, authentication.getName(), tipo)));
+        return ResponseEntity.ok(EntityModel.of(service.verificar(chamadoId, authentication.getName(), tipo)));
     }
 }

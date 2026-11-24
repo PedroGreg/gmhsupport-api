@@ -46,10 +46,10 @@ public class Pagamento {
     @Column(name = "cartao_final", length = 4)
     private String cartaoFinal;
 
-    @Column(name = "codigo_pix")
+    @Column(name = "codigo_pix", length = 1000)
     private String codigoPix;
 
-    @Column(length = 20)
+    @Column(length = 40)
     private String bandeira;
 
     @Column(name = "data_criacao", insertable = false, updatable = false)
@@ -57,6 +57,32 @@ public class Pagamento {
 
     @Column(name = "data_pagamento")
     private LocalDateTime dataPagamento;
+
+    // ----- Mercado Pago -----
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private MeioPagamento meio;
+
+    // Id do pagamento no Mercado Pago (Pix: criado na hora; cartão: chega na aprovação)
+    @Column(name = "mp_pagamento_id", length = 40)
+    private String mpPagamentoId;
+
+    // Checkout Pro: id da "preferência" e o link da página de pagamento
+    @Column(name = "mp_preferencia_id", length = 100)
+    private String mpPreferenciaId;
+
+    @Column(name = "link_pagamento", length = 500)
+    private String linkPagamento;
+
+    @Column(name = "pix_expira_em")
+    private LocalDateTime pixExpiraEm;
+
+    // Último status visto no Mercado Pago (approved, pending, rejected...) e o motivo
+    @Column(name = "mp_status", length = 40)
+    private String mpStatus;
+
+    @Column(name = "mp_status_detalhe", length = 100)
+    private String mpStatusDetalhe;
 
     // ----- Repasse ao técnico (o admin faz o Pix) -----
     @Enumerated(EnumType.STRING)
@@ -140,4 +166,25 @@ public class Pagamento {
 
     public String getObservacaoRepasse() { return observacaoRepasse; }
     public void setObservacaoRepasse(String observacaoRepasse) { this.observacaoRepasse = observacaoRepasse; }
+
+    public MeioPagamento getMeio() { return meio; }
+    public void setMeio(MeioPagamento meio) { this.meio = meio; }
+
+    public String getMpPagamentoId() { return mpPagamentoId; }
+    public void setMpPagamentoId(String mpPagamentoId) { this.mpPagamentoId = mpPagamentoId; }
+
+    public String getMpPreferenciaId() { return mpPreferenciaId; }
+    public void setMpPreferenciaId(String mpPreferenciaId) { this.mpPreferenciaId = mpPreferenciaId; }
+
+    public String getLinkPagamento() { return linkPagamento; }
+    public void setLinkPagamento(String linkPagamento) { this.linkPagamento = linkPagamento; }
+
+    public LocalDateTime getPixExpiraEm() { return pixExpiraEm; }
+    public void setPixExpiraEm(LocalDateTime pixExpiraEm) { this.pixExpiraEm = pixExpiraEm; }
+
+    public String getMpStatus() { return mpStatus; }
+    public void setMpStatus(String mpStatus) { this.mpStatus = mpStatus; }
+
+    public String getMpStatusDetalhe() { return mpStatusDetalhe; }
+    public void setMpStatusDetalhe(String mpStatusDetalhe) { this.mpStatusDetalhe = mpStatusDetalhe; }
 }

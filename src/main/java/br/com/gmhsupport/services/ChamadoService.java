@@ -107,15 +107,11 @@ public class ChamadoService {
         Chamado chamadoSalvo = chamadoRepository.save(chamado);
         logger.info("O id do chamado criado é: {}", chamadoSalvo.getId());
 
-        // Pagamento na abertura. Se o cartão for inválido, a exceção desfaz também o chamado (@Transactional)
-        Pagamento pagamento = pagamentoService.criarNaAbertura(
-                chamadoSalvo, orcamento, dto.formaPagamento(), dto.cartaoId(), dto.parcelas());
+        // Pagamento na abertura, no Mercado Pago. Se ele falhar, a exceção desfaz também o chamado (@Transactional)
+        Pagamento pagamento = pagamentoService.criarNaAbertura(chamadoSalvo, orcamento, dto.formaPagamento());
 
-        String registro = pagamento.getStatus() == StatusPagamento.pago
-                ? "Pagamento aprovado: R$ " + PagamentoService.formatar(pagamento.getValor())
-                  + " no " + (pagamento.getForma() == FormaPagamento.credito ? "crédito" : "débito")
-                  + " final " + pagamento.getCartaoFinal()
-                : "Aguardando pagamento do Pix de R$ " + PagamentoService.formatar(pagamento.getValor());
+        String registro = (pagamento.getMeio() == MeioPagamento.pix ? "Aguardando o Pix de R$ " : "Aguardando o pagamento com cartão de R$ ")
+                + PagamentoService.formatar(pagamento.getValor()) + " (Mercado Pago).";
         historicoChamadoService.create(new HistoricoChamadoRequestDTO(chamadoSalvo.getId(), null, registro));
 
         return new ChamadoResponseDTO(chamadoSalvo);

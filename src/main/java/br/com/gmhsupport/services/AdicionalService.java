@@ -96,8 +96,8 @@ public class AdicionalService {
         adicionalRepository.save(adicional);
         registrar(chamadoId, null, "Cliente aceitou o adicional de R$ " + PagamentoService.formatar(adicional.getValor()) + ".");
 
-        // Cartão: aprovado na hora e o atendimento volta (status 2). Pix: fica em 6 até confirmar.
-        pagamentoService.criarAdicional(chamado, adicional.getValor(), dto.formaPagamento(), dto.cartaoId(), dto.parcelas());
+        // Fica em 6 (aguardando) até o Mercado Pago aprovar; aí o PagamentoService volta o atendimento para 2
+        pagamentoService.criarAdicional(chamado, adicional.getValor(), dto.formaPagamento());
         return new ChamadoResponseDTO(chamado);
     }
 

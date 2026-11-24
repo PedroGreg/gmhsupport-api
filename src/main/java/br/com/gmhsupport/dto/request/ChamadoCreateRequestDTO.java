@@ -1,6 +1,6 @@
 package br.com.gmhsupport.dto.request;
 
-import br.com.gmhsupport.model.FormaPagamento;
+import br.com.gmhsupport.model.MeioPagamento;
 import br.com.gmhsupport.model.Prioridade;
 import jakarta.validation.constraints.*;
 
@@ -36,16 +36,10 @@ public record ChamadoCreateRequestDTO(
         @Size(max = 120)
         String complemento,
 
-        // Pagamento na abertura (como no iFood)
-        @NotNull(message = "Escolha a forma de pagamento (pix, credito ou debito)")
-        FormaPagamento formaPagamento,
-
-        // Cartão salvo em "Meus cartões". Obrigatório para credito/debito
-        Long cartaoId,
-
-        // Só no crédito: 1 a 6
-        @Min(value = 1, message = "Mínimo de 1 parcela")
-        @Max(value = 6, message = "Máximo de 6 parcelas")
-        Integer parcelas
+        // Pagamento na abertura (como no iFood), pelo Mercado Pago:
+        //  "pix"    -> a API devolve o código Pix (copia e cola)
+        //  "cartao" -> a API devolve o link do Checkout Pro (crédito/débito, parcelas escolhidas lá)
+        @NotNull(message = "Escolha a forma de pagamento (pix ou cartao)")
+        MeioPagamento formaPagamento
 ) {
 }

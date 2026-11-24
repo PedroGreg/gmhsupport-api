@@ -37,6 +37,9 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.POST, "/admin/login", "/admin/login/verificar").permitAll()
                         // Lista de categorias: usada no cadastro de técnico (especialidades), antes do login
                         .requestMatchers(HttpMethod.GET, "/categoriaProblema/completo").permitAll()
+                        // Mercado Pago: aviso de pagamento e volta do Checkout Pro (a API confere tudo no Mercado Pago)
+                        .requestMatchers(HttpMethod.POST, "/pagamento/webhook").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/pagamento/retorno").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
