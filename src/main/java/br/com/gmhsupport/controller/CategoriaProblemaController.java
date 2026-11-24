@@ -2,7 +2,9 @@ package br.com.gmhsupport.controller;
 
 import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.CategoriaProblemaRequestDTO;
+import br.com.gmhsupport.dto.response.CategoriaComSubcategoriasDTO;
 import br.com.gmhsupport.dto.response.CategoriaProblemaResponseDTO;
+import java.util.List;
 import br.com.gmhsupport.services.CategoriaProblemaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -56,6 +58,14 @@ public class CategoriaProblemaController {
         PagedModel<CategoriaProblemaResponseDTO> pagedCategoriaProblema = PagedModel.of(pageCategoriaProblema.stream().toList(),
                 new PagedModel.PageMetadata(pageCategoriaProblema.getSize(), pageCategoriaProblema.getNumber(), pageCategoriaProblema.getTotalElements(), pageCategoriaProblema.getTotalPages()));
         return new ResponseEntity<>(pagedCategoriaProblema, HttpStatus.OK);
+    }
+
+    // Público (liberado no SecurityConfigurations): também usado no cadastro de técnico, antes do login
+    @Operation(description = "Categorias com as subcategorias (problemas) e o preço base de cada uma. Usado no Novo Chamado")
+    @ApiResponse(responseCode = "200", description = "Lista completa (sem paginação)")
+    @GetMapping("/completo")
+    public ResponseEntity<List<CategoriaComSubcategoriasDTO>> completo() {
+        return ResponseEntity.ok(service.arvore());
     }
 
     @PreAuthorize("hasAuthority('ROLE_USUARIO') or hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")

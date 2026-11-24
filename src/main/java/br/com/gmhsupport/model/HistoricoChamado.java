@@ -25,7 +25,7 @@ public class HistoricoChamado {
     @JoinColumn(name = "id_tecnico")
     private Tecnico tecnico;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 4000)
     private String descricao;
 
     @Column(name = "data_registro", insertable = false, updatable = false)

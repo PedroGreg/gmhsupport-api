@@ -2,7 +2,6 @@ package br.com.gmhsupport.model;
 
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
 import java.util.Objects;
 
 @Entity
@@ -20,16 +19,17 @@ public class CategoriaProblema {
     @Column(length = 255)
     private String descricao;
 
-    // Preço base do atendimento nessa categoria (a prioridade adiciona um acréscimo)
-    @Column(name = "valor_base", nullable = false, precision = 10, scale = 2)
-    private BigDecimal valorBase = new BigDecimal("60.00");
+    // TRUE = preço fixo: sem acréscimo de prioridade nem de km (ex.: categoria "Testes").
+    // O preço de cada problema fica na subcategoria (SubcategoriaProblema.valorBase).
+    @Column(name = "valor_fixo", nullable = false)
+    private Boolean valorFixo = false;
 
-    public BigDecimal getValorBase() {
-        return valorBase;
+    public Boolean getValorFixo() {
+        return valorFixo;
     }
 
-    public void setValorBase(BigDecimal valorBase) {
-        this.valorBase = valorBase;
+    public void setValorFixo(Boolean valorFixo) {
+        this.valorFixo = valorFixo;
     }
 
     public CategoriaProblema() {

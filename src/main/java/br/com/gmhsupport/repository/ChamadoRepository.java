@@ -17,9 +17,11 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
 
     Page<Chamado> findByTecnicoIsNull(Pageable pageable);
 
-    // Fila de atendimento: sem técnico, "Aberto" e já pago (Pix não confirmado fica de fora)
+    // Fila de atendimento: sem técnico, "Aberto" e com o pagamento principal confirmado
+    // (Pix ainda não pago fica de fora)
     @Query("SELECT c FROM Chamado c WHERE c.tecnico IS NULL AND c.status.id = 1 " +
            "AND NOT EXISTS (SELECT p FROM Pagamento p WHERE p.chamado = c " +
+           "AND p.tipo = br.com.gmhsupport.model.TipoPagamento.principal " +
            "AND p.status <> br.com.gmhsupport.model.StatusPagamento.pago)")
     Page<Chamado> findFila(Pageable pageable);
 

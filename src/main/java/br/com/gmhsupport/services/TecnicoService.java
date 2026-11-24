@@ -6,6 +6,8 @@ import br.com.gmhsupport.dto.response.TecnicoResponseDTO;
 import br.com.gmhsupport.dto.response.UsuarioResponseDTO;
 import br.com.gmhsupport.exception.CustomNotFoundException;
 import br.com.gmhsupport.model.Chamado;
+import br.com.gmhsupport.model.StatusCadastro;
+import br.com.gmhsupport.model.StatusRepasse;
 import br.com.gmhsupport.model.Tecnico;
 import br.com.gmhsupport.repository.ChamadoRepository;
 import br.com.gmhsupport.repository.PagamentoRepository;
@@ -29,9 +31,11 @@ public class TecnicoService {
     private final PasswordEncoder passwordEncoder;
     private final ChamadoRepository chamadoRepository;
     private final PagamentoRepository pagamentoRepository;
+    private final RepasseService repasseService;
 
     Logger logger = LoggerFactory.getLogger(TecnicoService.class);
-    public TecnicoService(TecnicoRepository repository, PasswordEncoder passwordEncoder, ChamadoRepository chamadoRepository, PagamentoRepository pagamentoRepository){
+    public TecnicoService(TecnicoRepository repository, PasswordEncoder passwordEncoder, ChamadoRepository chamadoRepository, PagamentoRepository pagamentoRepository, RepasseService repasseService){
+        this.repasseService = repasseService;
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.chamadoRepository = chamadoRepository;
@@ -46,6 +50,9 @@ public class TecnicoService {
         tecnico.setSenha(passwordEncoder.encode(dto.senha()));
         tecnico.setEspecialidade(dto.especialidade());
         tecnico.setDataCadastro(LocalDateTime.now());
+        // Criado pelo administrador: já nasce aprovado (o cadastro público é o TecnicoCadastroService)
+        tecnico.setStatusCadastro(StatusCadastro.aprovado);
+        tecnico.setDataAnalise(LocalDateTime.now());
 
         Tecnico createTecnico = repository.save(tecnico);
         logger.info("O id do tecnico é: " + createTecnico.getId());
@@ -94,11 +101,12 @@ public class TecnicoService {
         logger.info("Estatísticas geradas: Total finalizados: {}, Nota Média: {}, Tempo Médio: {} min",
                 totalFinalizados, notaMedia, tempoMedioMinutos);
 
-        // 4. Soma dos pagamentos já confirmados dos chamados desse técnico
-        BigDecimal soma = pagamentoRepository.somarRecebidoPorTecnico(tecnico.getId());
-        BigDecimal valorRecebido = soma != null ? soma : BigDecimal.ZERO;
+        // 4. Repasses: o que o admin já pagou e o que está liberado esperando o Pix
+        BigDecimal valorRecebido = repasseService.somaDoTecnico(tecnico.getId(), StatusRepasse.pago);
+        BigDecimal valorAReceber = repasseService.somaDoTecnico(tecnico.getId(), StatusRepasse.liberado);
 
-        return new TecnicoEstatisticasResponseDTO(totalFinalizados, notaMedia, tempoMedioMinutos, valorRecebido);
+        return new TecnicoEstatisticasResponseDTO(totalFinalizados, notaMedia, tempoMedioMinutos,
+                valorRecebido, valorAReceber, repasseService.percentualInteiro());
     }
 
     public TecnicoResponseDTO findById(Long id) {
@@ -107,25 +115,25 @@ public class TecnicoService {
             throw new CustomNotFoundException("O ID deve ser preenchido e diferente de null");
         Tecnico findTecnico = repository.findById(id).orElseThrow(() -> new CustomNotFoundException(id));
         logger.info("O id do tecnico é: " + id);
-        return new TecnicoResponseDTO(findTecnico);
+        return new TecnicoResponseDTO(findTecnico).publico();
     }
 
     public Page<TecnicoResponseDTO> findAll(Pageable pageable){
         logger.info("Buscando todos tecnicos");
         Page<Tecnico> findTecnico = repository.findAll(pageable);
-        return findTecnico.map(TecnicoResponseDTO::new);
+        return findTecnico.map(t -> new TecnicoResponseDTO(t).publico());
     }
 
     public Page<TecnicoResponseDTO> findByNome(String nome, Pageable pageable){
         logger.info("Buscando todos tecnicos com o nome informado");
         Page<Tecnico> findTecnico = repository.findByNomeContainingIgnoreCase(nome, pageable);
-        return findTecnico.map(TecnicoResponseDTO::new);
+        return findTecnico.map(t -> new TecnicoResponseDTO(t).publico());
     }
 
     public Page<TecnicoResponseDTO> findByEmail(String email, Pageable pageable){
         logger.info("Buscando todos tecnicos com o email informado");
         Page<Tecnico> findTecnico = repository.findByEmailContainingIgnoreCase(email, pageable);
-        return findTecnico.map(TecnicoResponseDTO::new);
+        return findTecnico.map(t -> new TecnicoResponseDTO(t).publico());
     }
 
     public TecnicoResponseDTO update(TecnicoRequestDTO dto, Long id){

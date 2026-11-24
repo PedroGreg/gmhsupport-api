@@ -2,25 +2,39 @@ package br.com.gmhsupport.dto.request;
 
 import br.com.gmhsupport.model.FormaPagamento;
 import br.com.gmhsupport.model.Prioridade;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 public record ChamadoCreateRequestDTO(
 
-        @NotNull(message = "A categoria é obrigatoria")
-        Long categoriaId,
+        // O problema escolhido. A categoria vem dela.
+        @NotNull(message = "Escolha o problema (subcategoria)")
+        Long subcategoriaId,
 
         @NotBlank(message = "O titulo é obrigatorio")
-        @Size(max = 155)
+        @Size(max = 150)
         String titulo,
 
         @NotBlank(message = "A descrição é obrigatoria")
+        @Size(max = 4000)
         String descricao,
 
         Prioridade prioridade,
+
+        // Local do atendimento (GPS do celular ou endereço digitado e convertido pelo app)
+        @NotNull(message = "Informe a localização do atendimento")
+        @DecimalMin(value = "-90.0") @DecimalMax(value = "90.0")
+        Double latitude,
+
+        @NotNull(message = "Informe a localização do atendimento")
+        @DecimalMin(value = "-180.0") @DecimalMax(value = "180.0")
+        Double longitude,
+
+        @NotBlank(message = "Informe o endereço do atendimento")
+        @Size(max = 255)
+        String enderecoAtendimento,
+
+        @Size(max = 120)
+        String complemento,
 
         // Pagamento na abertura (como no iFood)
         @NotNull(message = "Escolha a forma de pagamento (pix, credito ou debito)")

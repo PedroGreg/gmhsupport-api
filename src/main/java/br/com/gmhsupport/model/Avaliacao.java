@@ -20,7 +20,7 @@ public class Avaliacao {
     @Column(nullable = false)
     private Integer nota;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 4000)
     private String comentario;
 
     @Column(name = "data_avaliacao", insertable = false, updatable = false)

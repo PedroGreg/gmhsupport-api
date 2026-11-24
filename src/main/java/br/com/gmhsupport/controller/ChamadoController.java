@@ -3,6 +3,8 @@ package br.com.gmhsupport.controller;
 import br.com.gmhsupport.config.*;
 import br.com.gmhsupport.dto.request.ChamadoCreateRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoFinalizarRequestDTO;
+import br.com.gmhsupport.dto.request.SolicitarCodigoRequestDTO;
+import br.com.gmhsupport.dto.response.CodigoConfirmacaoResponseDTO;
 import br.com.gmhsupport.dto.request.ChamadoMensagemRequestDTO;
 import br.com.gmhsupport.dto.request.ChamadoRequestDTO;
 import br.com.gmhsupport.dto.response.ChamadoResponseDTO;
@@ -245,8 +247,30 @@ public class ChamadoController {
         return new ResponseEntity<>(entityChamado, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
-    @Operation(description = "Finalizar chamado")
+    @PreAuthorize("hasAuthority('ROLE_TECNICO')")
+    @Operation(description = "Finalizar, passo 1: o técnico envia a solução e a API gera um código de 6 dígitos (válido por 30 min) que aparece para o cliente")
+    @ApiResponse(responseCode = "200", description = "Código gerado (o número não vem na resposta: o técnico pede ao cliente)")
+    @ApiResponse(responseCode = "409", description = "Chamado não está em atendimento ou aguarda resposta do adicional", content = @Content)
+    @PostMapping("/atribuidos/{id}/codigo")
+    public ResponseEntity<CodigoConfirmacaoResponseDTO> solicitarCodigo(
+            @PathVariable Long id,
+            @RequestBody @Valid SolicitarCodigoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(service.solicitarCodigo(id, authentication.getName(), dto));
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USUARIO')")
+    @Operation(description = "Cliente: ver o código de confirmação que deve informar ao técnico")
+    @ApiResponse(responseCode = "200", description = "Código ativo")
+    @ApiResponse(responseCode = "404", description = "Não há código ativo", content = @Content)
+    @GetMapping("/{id}/codigo")
+    public ResponseEntity<CodigoConfirmacaoResponseDTO> codigoDoCliente(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(service.codigoDoCliente(id, authentication.getName()));
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_TECNICO')")
+    @Operation(description = "Finalizar, passo 2: o técnico digita o código que o cliente informou. Certo = Resolvido. Máximo de 5 tentativas")
     @ApiResponse(responseCode = "200", description = "Entidade atualizada com sucesso, retornará a própria entidade atualizada")
     @ApiResponse(responseCode = "401", description = "Não autorizado, necessário estar logado e enviar o token de acesso, deverá vir no Header (Authorization: Bearer ..token..) e deverá ter a permissão correta", content = @Content)
     @ApiResponse(responseCode = "404", description = "Não foi encontrado nenhuma entidade com esse ID para atualizar, verificar ID", content = @Content)

@@ -1,5 +1,6 @@
 package br.com.gmhsupport.security;
 
+import br.com.gmhsupport.repository.AdministradorRepository;
 import br.com.gmhsupport.repository.TecnicoRepository;
 import br.com.gmhsupport.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
@@ -20,33 +21,47 @@ public class SecurityFilter extends OncePerRequestFilter {
     private final TokenService service;
     private final UsuarioRepository usuarioRepository;
     private final TecnicoRepository tecnicoRepository;
+    private final AdministradorRepository administradorRepository;
 
-    public SecurityFilter(TokenService service, UsuarioRepository usuarioRepository, TecnicoRepository tecnicoRepository){
+    public SecurityFilter(TokenService service, UsuarioRepository usuarioRepository, TecnicoRepository tecnicoRepository,
+                          AdministradorRepository administradorRepository){
         this.service = service;
         this.usuarioRepository = usuarioRepository;
         this.tecnicoRepository = tecnicoRepository;
+        this.administradorRepository = administradorRepository;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         var token = recuperarToken(request);
         if(token != null){
-            var email = service.validarToken(token);
-            if (email != null){
-                var usuario = usuarioRepository.findByEmailIgnoreCase(email);
-                if(usuario != null && usuario.isPresent()){
-                    var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USUARIO"));
-                    var authentication = new UsernamePasswordAuthenticationToken(usuario.get().getEmail(),null,authorities);
+            var jwt = service.decodificar(token);
+            if (jwt != null && jwt.getSubject() != null){
+                String email = jwt.getSubject();
+                String role = jwt.getClaim("role").asString();
+                String autoridade = null;
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }else{
-                    var tecnico = tecnicoRepository.findByEmailIgnoreCase(email);
-                    if (tecnico != null && tecnico.isPresent()){
-                        var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_TECNICO"));
-                        var authentication = new UsernamePasswordAuthenticationToken(tecnico.get().getEmail(), null, authorities);
-
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                if ("ROLE_ADMIN".equals(role)) {
+                    // Só vale se o admin existir e não estiver bloqueado
+                    var admin = administradorRepository.findByEmailIgnoreCase(email);
+                    if (admin.isPresent() && !admin.get().isBloqueado()) autoridade = "ROLE_ADMIN";
+                } else {
+                    var usuario = usuarioRepository.findByEmailIgnoreCase(email);
+                    if (usuario.isPresent()) {
+                        autoridade = "ROLE_USUARIO";
+                    } else {
+                        var tecnico = tecnicoRepository.findByEmailIgnoreCase(email);
+                        if (tecnico.isPresent()) {
+                            // Lido do banco a cada requisição: quando o admin aprova, o mesmo token já passa a valer
+                            autoridade = tecnico.get().isAprovado() ? "ROLE_TECNICO" : "ROLE_TECNICO_PENDENTE";
+                        }
                     }
+                }
+
+                if (autoridade != null) {
+                    var authorities = Collections.singletonList(new SimpleGrantedAuthority(autoridade));
+                    var authentication = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         }

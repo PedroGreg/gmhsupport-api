@@ -31,11 +31,23 @@ public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
         );
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
+    // Dado inválido enviado pelo app (CPF, idade, arquivo...): 400 com a mensagem em português
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ExceptionCustom> dadoInvalido(WebRequest request, IllegalArgumentException e) {
+        ExceptionCustom response = new ExceptionCustom(
+                new Date(),
+                e.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ExceptionCustom> dadoDuplicado(WebRequest request, DataIntegrityViolationException e) {
         String mensagem = "Registro duplicado ou violação de integridade dos dados.";
         if(e.getRootCause() != null && e.getRootCause().getMessage().contains("email")){
             mensagem = "Este e-mail já está cadastrado.";
+        } else if(e.getRootCause() != null && e.getRootCause().getMessage().contains("cpf")){
+            mensagem = "Este CPF já está cadastrado.";
         }
         ExceptionCustom response = new ExceptionCustom(
                 new Date(),

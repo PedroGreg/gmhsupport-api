@@ -5,7 +5,11 @@ import br.com.gmhsupport.dto.request.TecnicoRequestDTO;
 import br.com.gmhsupport.dto.response.TecnicoEstatisticasResponseDTO;
 import br.com.gmhsupport.dto.response.TecnicoResponseDTO;
 import br.com.gmhsupport.dto.response.UsuarioResponseDTO;
+import br.com.gmhsupport.dto.request.TecnicoCadastroRequestDTO;
+import br.com.gmhsupport.services.TecnicoCadastroService;
 import br.com.gmhsupport.services.TecnicoService;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,12 +34,36 @@ import org.springframework.web.bind.annotation.*;
 public class TecnicoController {
 
     private final TecnicoService service;
+    private final TecnicoCadastroService cadastroService;
 
-    public TecnicoController(TecnicoService service){
+    public TecnicoController(TecnicoService service, TecnicoCadastroService cadastroService){
         this.service = service;
+        this.cadastroService = cadastroService;
     }
 
-    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
+    // Público: "Quero ser técnico". multipart/form-data com 2 partes:
+    //   dados        = JSON (TecnicoCadastroRequestDTO), Content-Type application/json
+    //   antecedentes = arquivo PDF/JPG/PNG até 5 MB
+    @Operation(description = "Cadastro de técnico (fica pendente até o administrador aprovar)")
+    @ApiResponse(responseCode = "201", description = "Cadastro recebido, aguardando análise")
+    @ApiResponse(responseCode = "400", description = "Dados inválidos (CPF, idade, arquivo...)", content = @Content)
+    @ApiResponse(responseCode = "409", description = "E-mail ou CPF já cadastrado", content = @Content)
+    @PostMapping(value = "/cadastro", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TecnicoResponseDTO> cadastro(@RequestPart("dados") TecnicoCadastroRequestDTO dados,
+                                                       @RequestPart(value = "antecedentes", required = false) MultipartFile antecedentes){
+        return new ResponseEntity<>(cadastroService.cadastrar(dados, antecedentes), HttpStatus.CREATED);
+    }
+
+    // Técnico recusado manda uma nova certidão (volta para "pendente")
+    @PreAuthorize("hasAuthority('ROLE_TECNICO_PENDENTE')")
+    @Operation(description = "Reenviar a certidão de antecedentes (cadastro recusado ou pendente)")
+    @PutMapping(value = "/me/documento", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TecnicoResponseDTO> reenviarDocumento(@RequestPart(value = "antecedentes", required = false) MultipartFile antecedentes,
+                                                                Authentication authentication){
+        return ResponseEntity.ok(cadastroService.reenviarDocumento(authentication.getName(), antecedentes));
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Operation(description = "Criar um novo tecnico")
     @ApiResponseCreate
     @PostMapping("")
@@ -45,7 +73,8 @@ public class TecnicoController {
         return new ResponseEntity<>(entityModel, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
+    // Também para o técnico pendente/recusado: a tela "Cadastro em análise" consulta o status aqui
+    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_TECNICO_PENDENTE')")
     @Operation(description = "Buscar perfil do tecnico logado")
     @ApiResponse()
     @GetMapping("/me")
@@ -53,7 +82,7 @@ public class TecnicoController {
         return ResponseEntity.ok(service.findByEmailExato(authentication.getName()));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_TECNICO') or hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_TECNICO')")
     @Operation(description = "Buscar estatísticas do perfil do técnico logado")
     @ApiResponse
     @GetMapping("/me/estatisticas")

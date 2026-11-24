@@ -1,7 +1,10 @@
 package br.com.gmhsupport.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -26,13 +29,17 @@ public class Chamado {
     private CategoriaProblema categoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_subcategoria")
+    private SubcategoriaProblema subcategoria;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_status", nullable = false)
     private StatusChamado status;
 
     @Column(nullable = false, length = 150)
     private String titulo;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 4000)
     private String descricao;
 
     @Enumerated(EnumType.STRING)
@@ -48,16 +55,95 @@ public class Chamado {
     @Column(name = "data_fechamento")
     private LocalDateTime dataFechamento;
 
-    // Lado "inverso" da relação: quem tem a coluna id_chamado é a tabela pagamentos
-    @OneToOne(mappedBy = "chamado", fetch = FetchType.LAZY)
-    private Pagamento pagamento;
+    // ----- Local do atendimento -----
+    @Column(name = "endereco_atendimento", length = 255)
+    private String enderecoAtendimento;
 
-    public Pagamento getPagamento() {
-        return pagamento;
+    @Column(length = 120)
+    private String complemento;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    @Column(name = "distancia_km", precision = 6, scale = 2)
+    private BigDecimal distanciaKm;
+
+    // ----- Código de confirmação para finalizar -----
+    @Column(name = "codigo_confirmacao", length = 6)
+    private String codigoConfirmacao;
+
+    @Column(name = "codigo_expira_em")
+    private LocalDateTime codigoExpiraEm;
+
+    @Column(name = "codigo_tentativas", nullable = false)
+    private Integer codigoTentativas = 0;
+
+    // Solução escrita pelo técnico, guardada até o código ser confirmado
+    @Column(length = 4000)
+    private String solucao;
+
+    // Lado "inverso": quem tem a coluna id_chamado são as tabelas pagamentos e adicionais
+    @OneToMany(mappedBy = "chamado", fetch = FetchType.LAZY)
+    private List<Pagamento> pagamentos = new ArrayList<>();
+
+    @OneToOne(mappedBy = "chamado", fetch = FetchType.LAZY)
+    private Adicional adicional;
+
+    // Pagamento feito na abertura
+    public Pagamento getPagamentoPrincipal() {
+        return pagamentoDoTipo(TipoPagamento.principal);
     }
 
-    public void setPagamento(Pagamento pagamento) {
-        this.pagamento = pagamento;
+    // Pagamento do valor adicional (se houver)
+    public Pagamento getPagamentoAdicional() {
+        return pagamentoDoTipo(TipoPagamento.adicional);
+    }
+
+    private Pagamento pagamentoDoTipo(TipoPagamento tipo) {
+        if (pagamentos == null) return null;
+        return pagamentos.stream().filter(p -> p.getTipo() == tipo).findFirst().orElse(null);
+    }
+
+    public List<Pagamento> getPagamentos() { return pagamentos; }
+    public void setPagamentos(List<Pagamento> pagamentos) { this.pagamentos = pagamentos; }
+
+    public Adicional getAdicional() { return adicional; }
+    public void setAdicional(Adicional adicional) { this.adicional = adicional; }
+
+    public SubcategoriaProblema getSubcategoria() { return subcategoria; }
+    public void setSubcategoria(SubcategoriaProblema subcategoria) { this.subcategoria = subcategoria; }
+
+    public String getEnderecoAtendimento() { return enderecoAtendimento; }
+    public void setEnderecoAtendimento(String enderecoAtendimento) { this.enderecoAtendimento = enderecoAtendimento; }
+
+    public String getComplemento() { return complemento; }
+    public void setComplemento(String complemento) { this.complemento = complemento; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public BigDecimal getDistanciaKm() { return distanciaKm; }
+    public void setDistanciaKm(BigDecimal distanciaKm) { this.distanciaKm = distanciaKm; }
+
+    public String getCodigoConfirmacao() { return codigoConfirmacao; }
+    public void setCodigoConfirmacao(String codigoConfirmacao) { this.codigoConfirmacao = codigoConfirmacao; }
+
+    public LocalDateTime getCodigoExpiraEm() { return codigoExpiraEm; }
+    public void setCodigoExpiraEm(LocalDateTime codigoExpiraEm) { this.codigoExpiraEm = codigoExpiraEm; }
+
+    public Integer getCodigoTentativas() { return codigoTentativas; }
+    public void setCodigoTentativas(Integer codigoTentativas) { this.codigoTentativas = codigoTentativas; }
+
+    public String getSolucao() { return solucao; }
+    public void setSolucao(String solucao) { this.solucao = solucao; }
+
+    // Há um código válido esperando o técnico digitar?
+    public boolean isCodigoAtivo() {
+        return codigoConfirmacao != null && codigoExpiraEm != null && codigoExpiraEm.isAfter(LocalDateTime.now());
     }
 
     public Chamado() {

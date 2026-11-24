@@ -32,6 +32,11 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/usuario").permitAll()
+                        // Cadastro de técnico (com a certidão) e login do admin em 2 etapas
+                        .requestMatchers(HttpMethod.POST, "/tecnico/cadastro").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/admin/login", "/admin/login/verificar").permitAll()
+                        // Lista de categorias: usada no cadastro de técnico (especialidades), antes do login
+                        .requestMatchers(HttpMethod.GET, "/categoriaProblema/completo").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

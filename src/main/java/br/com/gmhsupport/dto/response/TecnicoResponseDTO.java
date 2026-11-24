@@ -9,7 +9,11 @@ public record TecnicoResponseDTO(
         String email,
         String especialidade,
         Boolean disponivel,
-        LocalDateTime dataCadastro
+        LocalDateTime dataCadastro,
+        String telefone,
+        String chavePix,
+        String statusCadastro,   // "pendente", "aprovado" ou "recusado"
+        String motivoRecusa
 ) {
     public TecnicoResponseDTO(Tecnico tecnico){
         this(
@@ -18,7 +22,17 @@ public record TecnicoResponseDTO(
                 tecnico.getEmail(),
                 tecnico.getEspecialidade(),
                 tecnico.getDisponivel(),
-                tecnico.getDataCadastro()
+                tecnico.getDataCadastro(),
+                tecnico.getTelefone(),
+                tecnico.getChavePix(),
+                tecnico.getStatusCadastro() != null ? tecnico.getStatusCadastro().name() : null,
+                tecnico.getMotivoRecusa()
         );
+    }
+
+    // Versão para outras pessoas (cliente vendo o técnico do chamado): sem telefone e sem chave Pix
+    public TecnicoResponseDTO publico() {
+        return new TecnicoResponseDTO(id, nome, email, especialidade, disponivel, dataCadastro,
+                null, null, statusCadastro, null);
     }
 }

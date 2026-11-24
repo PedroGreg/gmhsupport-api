@@ -49,9 +49,11 @@ public class LoginService {
         if(tecnicoOptional.isPresent()){
             Tecnico tecnico = tecnicoOptional.get();
             if(passwordEncoder.matches(request.password(), tecnico.getSenha())){
-                logger.info("Login efetuado com sucesso para tecnico {}", request.email());
-                String token = service.gerarToken(request.email(), "ROLE_TECNICO");
-                return new ResponseEntity<>(new TokenResponseDTO(token, tecnico.getNome(), "ROLE_TECNICO"), HttpStatus.OK);
+                // Cadastro ainda não aprovado: entra, mas o app só mostra "Cadastro em análise"
+                String role = tecnico.isAprovado() ? "ROLE_TECNICO" : "ROLE_TECNICO_PENDENTE";
+                logger.info("Login efetuado com sucesso para tecnico {} ({})", request.email(), role);
+                String token = service.gerarToken(request.email(), role);
+                return new ResponseEntity<>(new TokenResponseDTO(token, tecnico.getNome(), role), HttpStatus.OK);
             }
         }
         logger.info("Email e/ou senha incorretos");

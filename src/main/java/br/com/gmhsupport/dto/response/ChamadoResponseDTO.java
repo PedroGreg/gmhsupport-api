@@ -1,12 +1,8 @@
 package br.com.gmhsupport.dto.response;
 
-import br.com.gmhsupport.model.Chamado;
-import br.com.gmhsupport.model.FormaPagamento;
-import br.com.gmhsupport.model.Prioridade;
-import br.com.gmhsupport.model.StatusPagamento;
+import br.com.gmhsupport.model.*;
 
 import java.math.BigDecimal;
-
 import java.time.LocalDateTime;
 
 public record ChamadoResponseDTO(
@@ -19,6 +15,8 @@ public record ChamadoResponseDTO(
         String tecnicoNome,
         Long categoriaId,
         String categoriaNome,
+        Long subcategoriaId,
+        String subcategoriaNome,
         Long statusId,
         String statusDescricao,
         String titulo,
@@ -28,46 +26,73 @@ public record ChamadoResponseDTO(
         LocalDateTime dataAtendimento,
         LocalDateTime dataFechamento,
 
-        // Pagamento feito na abertura
+        // Local do atendimento
+        String enderecoAtendimento,
+        String complemento,
+        Double latitude,
+        Double longitude,
+        BigDecimal distanciaKm,
+
+        // Pagamento principal (feito na abertura)
         BigDecimal valor,
+        BigDecimal valorServico,
+        BigDecimal valorDeslocamento,
         StatusPagamento statusPagamento,
-        FormaPagamento formaPagamento
+        FormaPagamento formaPagamento,
+
+        // Adicional pedido pelo técnico (null se não houver)
+        BigDecimal valorAdicional,
+        String motivoAdicional,
+        StatusAdicional statusAdicional,
+        DecisaoAdicional decisaoAdicional,
+        StatusPagamento statusPagamentoAdicional,
+
+        // Código de confirmação: só diz se existe um válido (o número em si só o cliente vê)
+        boolean codigoPendente,
+        LocalDateTime codigoExpiraEm
 ) {
-    public ChamadoResponseDTO(Chamado chamado) {
+    public ChamadoResponseDTO(Chamado c) {
         this(
-                // 1. ID do Chamado
-                chamado.getId(),
+                c.getId(),
+                c.getUsuario() != null ? c.getUsuario().getId() : null,
+                c.getUsuario() != null ? c.getUsuario().getNome() : null,
+                c.getUsuario() != null ? c.getUsuario().getTelefone() : null,
+                c.getUsuario() != null ? c.getUsuario().getEndereco() : null,
+                c.getTecnico() != null ? c.getTecnico().getId() : null,
+                c.getTecnico() != null ? c.getTecnico().getNome() : null,
+                c.getCategoria() != null ? c.getCategoria().getId() : null,
+                c.getCategoria() != null ? c.getCategoria().getNome() : null,
+                c.getSubcategoria() != null ? c.getSubcategoria().getId() : null,
+                c.getSubcategoria() != null ? c.getSubcategoria().getNome() : null,
+                c.getStatus() != null ? c.getStatus().getId() : null,
+                c.getStatus() != null ? c.getStatus().getDescricao() : null,
+                c.getTitulo(),
+                c.getDescricao(),
+                c.getPrioridade(),
+                c.getDataAbertura(),
+                c.getDataAtendimento(),
+                c.getDataFechamento(),
 
-                // 2. Mapeamento Usuário (sempre presente)
-                chamado.getUsuario() != null ? chamado.getUsuario().getId() : null,
-                chamado.getUsuario() != null ? chamado.getUsuario().getNome() : null,
-                chamado.getUsuario() != null ? chamado.getUsuario().getTelefone() : null,
-                chamado.getUsuario() != null ? chamado.getUsuario().getEndereco() : null,
+                c.getEnderecoAtendimento(),
+                c.getComplemento(),
+                c.getLatitude(),
+                c.getLongitude(),
+                c.getDistanciaKm(),
 
-                // 3. Mapeamento Técnico (pode ser null)
-                chamado.getTecnico() != null ? chamado.getTecnico().getId() : null,
-                chamado.getTecnico() != null ? chamado.getTecnico().getNome() : null,
+                c.getPagamentoPrincipal() != null ? c.getPagamentoPrincipal().getValor() : null,
+                c.getPagamentoPrincipal() != null ? c.getPagamentoPrincipal().getValorServico() : null,
+                c.getPagamentoPrincipal() != null ? c.getPagamentoPrincipal().getValorDeslocamento() : null,
+                c.getPagamentoPrincipal() != null ? c.getPagamentoPrincipal().getStatus() : null,
+                c.getPagamentoPrincipal() != null ? c.getPagamentoPrincipal().getForma() : null,
 
-                // 4. Mapeamento Categoria
-                chamado.getCategoria() != null ? chamado.getCategoria().getId() : null,
-                chamado.getCategoria() != null ? chamado.getCategoria().getNome() : null,
+                c.getAdicional() != null ? c.getAdicional().getValor() : null,
+                c.getAdicional() != null ? c.getAdicional().getMotivo() : null,
+                c.getAdicional() != null ? c.getAdicional().getStatus() : null,
+                c.getAdicional() != null ? c.getAdicional().getDecisaoTecnico() : null,
+                c.getPagamentoAdicional() != null ? c.getPagamentoAdicional().getStatus() : null,
 
-                // 5. Mapeamento Status (ID e depois Descrição)
-                chamado.getStatus() != null ? chamado.getStatus().getId() : null,
-                chamado.getStatus() != null ? chamado.getStatus().getDescricao() : null,
-
-                // 6. Demais campos do Chamado
-                chamado.getTitulo(),
-                chamado.getDescricao(),
-                chamado.getPrioridade(),
-                chamado.getDataAbertura(),
-                chamado.getDataAtendimento(),
-                chamado.getDataFechamento(),
-
-                // 7. Pagamento (pode não existir em chamados antigos)
-                chamado.getPagamento() != null ? chamado.getPagamento().getValor() : null,
-                chamado.getPagamento() != null ? chamado.getPagamento().getStatus() : null,
-                chamado.getPagamento() != null ? chamado.getPagamento().getForma() : null
+                c.isCodigoAtivo(),
+                c.isCodigoAtivo() ? c.getCodigoExpiraEm() : null
         );
     }
 }
