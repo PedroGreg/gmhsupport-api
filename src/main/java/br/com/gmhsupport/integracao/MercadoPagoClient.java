@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -31,8 +31,11 @@ public class MercadoPagoClient {
 
     public MercadoPagoClient(@Value("${gmh.mp.access-token:}") String accessToken) {
         this.configurado = accessToken != null && !accessToken.isBlank();
-        SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
-        fabrica.setConnectTimeout(Duration.ofSeconds(10));
+        // HttpClient do Java: ao contrário do HttpURLConnection, lê o corpo das respostas 401
+        // (assim o log mostra o motivo que o Mercado Pago deu)
+        java.net.http.HttpClient cliente = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10)).build();
+        JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(cliente);
         fabrica.setReadTimeout(Duration.ofSeconds(25));
         this.http = RestClient.builder()
                 .baseUrl("https://api.mercadopago.com")
@@ -41,6 +44,10 @@ public class MercadoPagoClient {
                 .build();
         if (!configurado) {
             logger.warn("MP_ACCESS_TOKEN não definido: pagamentos do Mercado Pago desligados.");
+        } else {
+            // Só o começo e o tamanho (nunca o token inteiro): ajuda a ver se a variável foi colada certa
+            String t = accessToken.trim();
+            logger.info("Mercado Pago: token {}... ({} caracteres)", t.substring(0, Math.min(12, t.length())), t.length());
         }
     }
 
