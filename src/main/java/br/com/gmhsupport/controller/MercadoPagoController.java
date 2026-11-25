@@ -45,6 +45,8 @@ public class MercadoPagoController {
                                         @RequestHeader(value = "x-request-id", required = false) String requestId) {
         String tipo = params.getOrDefault("type", params.get("topic"));
         String id = params.get("data.id");
+        // Formato antigo (IPN): ?topic=payment&id=123
+        if (id == null && "payment".equals(params.get("topic"))) id = params.get("id");
         if (corpo != null) {
             if (tipo == null && corpo.get("type") != null) tipo = corpo.get("type").toString();
             if (id == null && corpo.get("data") instanceof Map<?, ?> data && data.get("id") != null) {

@@ -149,11 +149,10 @@ public class PagamentoService {
         corpo.put("description", descricao(p));
         corpo.put("payment_method_id", "pix");
         corpo.put("external_reference", referencia(p));
-        corpo.put("notification_url", urlNotificacao());
         corpo.put("date_of_expiration", expira.atZone(FUSO).format(DATA_MP));
         corpo.put("payer", pagador(p));
 
-        Map<String, Object> r = mp.criarPagamento(corpo, "gmh-pix-" + p.getId() + "-" + UUID.randomUUID());
+        Map<String, Object> r = comAviso(corpo, c -> mp.criarPagamento(c, "gmh-pix-" + p.getId() + "-" + UUID.randomUUID()));
         String copiaECola = texto(r, "point_of_interaction", "transaction_data", "qr_code");
         if (copiaECola == null) {
             throw new MercadoPagoException("O Mercado Pago não gerou o código Pix. Confira se a conta tem uma chave Pix cadastrada.");
@@ -167,7 +166,7 @@ public class PagamentoService {
 
     private void gerarCheckout(Pagamento p) {
         p.setStatus(StatusPagamento.pendente);
-        String retorno = urlPublica + "/pagamento/retorno?ref=" + referencia(p);
+        String retorno = urlPublica.trim().replaceAll("/+$", "") + "/pagamento/retorno?ref=" + referencia(p);
 
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", "chamado-" + p.getChamado().getId() + "-" + p.getTipo());
@@ -180,7 +179,6 @@ public class PagamentoService {
         corpo.put("items", List.of(item));
         corpo.put("payer", pagador(p));
         corpo.put("external_reference", referencia(p));
-        corpo.put("notification_url", urlNotificacao());
         corpo.put("back_urls", Map.of("success", retorno, "pending", retorno, "failure", retorno));
         corpo.put("auto_return", "approved");
         corpo.put("statement_descriptor", "GMHSUPPORT");
@@ -189,7 +187,7 @@ public class PagamentoService {
                 "excluded_payment_types", List.of(Map.of("id", "ticket"), Map.of("id", "atm")),
                 "installments", parcelasMaximo));
 
-        Map<String, Object> r = mp.criarPreferencia(corpo);
+        Map<String, Object> r = comAviso(corpo, mp::criarPreferencia);
         String link = texto(r, "init_point");
         if (link == null) throw new MercadoPagoException("O Mercado Pago não devolveu o link de pagamento.");
         p.setMpPreferenciaId(texto(r, "id"));
@@ -479,8 +477,39 @@ public class PagamentoService {
                 p.getTipo() == TipoPagamento.adicional ? " (adicional)" : "");
     }
 
+    // Endereço do webhook. Se API_URL_PUBLICA estiver errada, não manda (fica valendo o webhook do painel)
     private String urlNotificacao() {
-        return urlPublica + "/pagamento/webhook?source_news=webhooks";
+        String base = urlPublica == null ? "" : urlPublica.trim().replaceAll("/+$", "");
+        try {
+            java.net.URI uri = java.net.URI.create(base);
+            boolean valida = "https".equals(uri.getScheme()) && uri.getHost() != null && uri.getHost().contains(".")
+                    && !uri.getHost().contains("localhost");
+            if (valida) return base + "/pagamento/webhook";
+        } catch (IllegalArgumentException e) {
+            // cai no aviso abaixo
+        }
+        logger.warn("API_URL_PUBLICA inválida ('{}'): cobrança criada sem notification_url", urlPublica);
+        return null;
+    }
+
+    // Cria a cobrança com notification_url. Se o Mercado Pago recusar o endereço (erro 4020),
+    // tenta de novo sem ele: o aviso continua chegando pelo webhook configurado no painel.
+    private Map<String, Object> comAviso(Map<String, Object> corpo,
+                                         java.util.function.Function<Map<String, Object>, Map<String, Object>> criar) {
+        String url = urlNotificacao();
+        if (url == null) {
+            corpo.remove("notification_url");
+            return criar.apply(corpo);
+        }
+        corpo.put("notification_url", url);
+        try {
+            return criar.apply(corpo);
+        } catch (MercadoPagoException e) {
+            if (e.getMessage() == null || !e.getMessage().contains("url")) throw e;
+            logger.warn("Mercado Pago recusou notification_url '{}': criando sem ela (use o webhook do painel)", url);
+            corpo.remove("notification_url");
+            return criar.apply(corpo);
+        }
     }
 
     public static String referencia(Pagamento p) {

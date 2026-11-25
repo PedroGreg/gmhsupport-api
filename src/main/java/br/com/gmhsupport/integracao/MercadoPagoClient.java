@@ -107,11 +107,25 @@ public class MercadoPagoClient {
         } catch (RestClientResponseException e) {
             logger.error("Mercado Pago recusou '{}' (HTTP {}): {}", acao, e.getStatusCode().value(),
                     e.getResponseBodyAsString());
-            throw new MercadoPagoException("O Mercado Pago recusou a operação (" + acao + "). Tente de novo em instantes.");
+            // Mostra o motivo do Mercado Pago (ex.: "payer.email must be a valid email"): ajuda a achar o problema
+            String motivo = motivo(e.getResponseBodyAsString());
+            throw new MercadoPagoException("O Mercado Pago recusou a operação (" + acao + ")"
+                    + (motivo != null ? ": " + motivo : ". Tente de novo em instantes."));
         } catch (ResourceAccessException e) {
             logger.error("Sem resposta do Mercado Pago em '{}': {}", acao, e.getMessage());
             throw new MercadoPagoException("O Mercado Pago não respondeu. Tente de novo em instantes.");
         }
+    }
+
+    // Tira "message" e a "description" da primeira "cause" do JSON de erro do Mercado Pago
+    private static String motivo(String corpo) {
+        if (corpo == null || corpo.isBlank()) return null;
+        java.util.List<String> partes = new java.util.ArrayList<>();
+        for (String chave : new String[]{"message", "description"}) {
+            var m = java.util.regex.Pattern.compile("\"" + chave + "\"\\s*:\\s*\"([^\"]{1,200})\"").matcher(corpo);
+            if (m.find() && !partes.contains(m.group(1))) partes.add(m.group(1));
+        }
+        return partes.isEmpty() ? null : String.join(" — ", partes);
     }
 
     // ----- leitura segura de campos do JSON -----
